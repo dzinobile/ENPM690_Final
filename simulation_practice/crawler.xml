@@ -1,0 +1,123 @@
+<!--
+  Simple quadruped "crawler" for evolutionary locomotion experiments.
+
+  Structure
+  ---------
+  Torso (box) with a free joint so it can move anywhere.
+  4 legs, each with:
+    - upper link  (capsule, 0.28 m)  driven by a hip hinge (y-axis)
+    - lower link  (capsule, 0.28 m)  driven by a knee hinge (y-axis)
+    - foot sphere for ground contact
+
+  Actuators (8 total, in order):
+    0  fl_hip    front-left hip
+    1  fl_knee   front-left knee
+    2  fr_hip    front-right hip
+    3  fr_knee   front-right knee
+    4  bl_hip    back-left hip
+    5  bl_knee   back-left knee
+    6  br_hip    back-right hip
+    7  br_knee   back-right knee
+
+  Forward direction is +x.  The robot starts at z = 0.65 so the legs
+  just reach the ground when hanging straight down.
+-->
+<mujoco model="crawler">
+
+  <compiler angle="degree"/>
+
+  <option timestep="0.005" integrator="RK4" gravity="0 0 -9.81"/>
+
+  <default>
+    <joint limited="true" damping="0.8" armature="0.01" stiffness="0"/>
+    <geom condim="3" friction="1.2 0.005 0.0001" density="1000"/>
+    <motor ctrllimited="true" ctrlrange="-1 1" gear="120"/>
+  </default>
+
+  <worldbody>
+    <light name="sun" pos="0 0 6" dir="0 0 -1" diffuse="1 1 1" specular="0.3 0.3 0.3"/>
+    <geom name="floor" type="plane" size="50 50 0.1"
+          rgba="0.75 0.85 0.75 1" conaffinity="1" contype="1"/>
+
+    <!-- ── Torso ──────────────────────────────────────────────────────── -->
+    <body name="torso" pos="0 0 0.65">
+      <freejoint name="root"/>
+      <geom name="torso_geom" type="box" size="0.2 0.12 0.05"
+            mass="4" rgba="0.35 0.45 0.75 1"/>
+
+      <!-- ── Front-Left leg ──────────────────────────────────────────── -->
+      <body name="fl_upper" pos="0.18 0.12 0">
+        <joint name="fl_hip" type="hinge" axis="0 1 0" range="-70 70"/>
+        <geom type="capsule" fromto="0 0 0  0 0 -0.28"
+              size="0.04" mass="0.4" rgba="0.80 0.40 0.35 1"/>
+        <body name="fl_lower" pos="0 0 -0.28">
+          <joint name="fl_knee" type="hinge" axis="0 1 0" range="-80 10"/>
+          <geom type="capsule" fromto="0 0 0  0 0 -0.28"
+                size="0.035" mass="0.3" rgba="0.90 0.60 0.35 1"/>
+          <geom name="fl_foot" type="sphere" pos="0 0 -0.29"
+                size="0.055" mass="0.1" rgba="0.95 0.90 0.25 1"
+                conaffinity="1" contype="1"/>
+        </body>
+      </body>
+
+      <!-- ── Front-Right leg ─────────────────────────────────────────── -->
+      <body name="fr_upper" pos="0.18 -0.12 0">
+        <joint name="fr_hip" type="hinge" axis="0 1 0" range="-70 70"/>
+        <geom type="capsule" fromto="0 0 0  0 0 -0.28"
+              size="0.04" mass="0.4" rgba="0.80 0.40 0.35 1"/>
+        <body name="fr_lower" pos="0 0 -0.28">
+          <joint name="fr_knee" type="hinge" axis="0 1 0" range="-80 10"/>
+          <geom type="capsule" fromto="0 0 0  0 0 -0.28"
+                size="0.035" mass="0.3" rgba="0.90 0.60 0.35 1"/>
+          <geom name="fr_foot" type="sphere" pos="0 0 -0.29"
+                size="0.055" mass="0.1" rgba="0.95 0.90 0.25 1"
+                conaffinity="1" contype="1"/>
+        </body>
+      </body>
+
+      <!-- ── Back-Left leg ───────────────────────────────────────────── -->
+      <body name="bl_upper" pos="-0.18 0.12 0">
+        <joint name="bl_hip" type="hinge" axis="0 1 0" range="-70 70"/>
+        <geom type="capsule" fromto="0 0 0  0 0 -0.28"
+              size="0.04" mass="0.4" rgba="0.35 0.75 0.40 1"/>
+        <body name="bl_lower" pos="0 0 -0.28">
+          <joint name="bl_knee" type="hinge" axis="0 1 0" range="-80 10"/>
+          <geom type="capsule" fromto="0 0 0  0 0 -0.28"
+                size="0.035" mass="0.3" rgba="0.55 0.85 0.45 1"/>
+          <geom name="bl_foot" type="sphere" pos="0 0 -0.29"
+                size="0.055" mass="0.1" rgba="0.95 0.90 0.25 1"
+                conaffinity="1" contype="1"/>
+        </body>
+      </body>
+
+      <!-- ── Back-Right leg ──────────────────────────────────────────── -->
+      <body name="br_upper" pos="-0.18 -0.12 0">
+        <joint name="br_hip" type="hinge" axis="0 1 0" range="-70 70"/>
+        <geom type="capsule" fromto="0 0 0  0 0 -0.28"
+              size="0.04" mass="0.4" rgba="0.35 0.75 0.40 1"/>
+        <body name="br_lower" pos="0 0 -0.28">
+          <joint name="br_knee" type="hinge" axis="0 1 0" range="-80 10"/>
+          <geom type="capsule" fromto="0 0 0  0 0 -0.28"
+                size="0.035" mass="0.3" rgba="0.55 0.85 0.45 1"/>
+          <geom name="br_foot" type="sphere" pos="0 0 -0.29"
+                size="0.055" mass="0.1" rgba="0.95 0.90 0.25 1"
+                conaffinity="1" contype="1"/>
+        </body>
+      </body>
+
+    </body>
+  </worldbody>
+
+  <!-- 8 motors, one per joint, ordered fl → fr → bl → br, hip before knee -->
+  <actuator>
+    <motor name="fl_hip_m"  joint="fl_hip"/>
+    <motor name="fl_knee_m" joint="fl_knee"/>
+    <motor name="fr_hip_m"  joint="fr_hip"/>
+    <motor name="fr_knee_m" joint="fr_knee"/>
+    <motor name="bl_hip_m"  joint="bl_hip"/>
+    <motor name="bl_knee_m" joint="bl_knee"/>
+    <motor name="br_hip_m"  joint="br_hip"/>
+    <motor name="br_knee_m" joint="br_knee"/>
+  </actuator>
+
+</mujoco>
