@@ -19,3 +19,12 @@ Watch top 3 entries
 ```bash
 python3 replay.py --top 3
 ```
+
+Run PG algorithm
+```bash
+pip install -r requirements.txt
+
+python3 train_pg.py --iters 50 --eps 5
+
+python3 replay.py --pkl pg_results.pkl
+```
