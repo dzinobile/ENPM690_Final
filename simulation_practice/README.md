@@ -28,3 +28,10 @@ python3 train_pg.py --iters 50 --eps 5
 
 python3 replay.py --pkl pg_results.pkl
 ```
+
+Run PPO algorithm
+```bash
+python3 train_ppo.py --iters 50 --steps 200 --epochs 10
+
+python3 replay.py --pkl ppo_results.pkl
+```
