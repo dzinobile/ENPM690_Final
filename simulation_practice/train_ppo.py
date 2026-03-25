@@ -73,7 +73,7 @@ ACT_DIM = NUM_ACTUATORS
 
 # ── Reward weights ─────────────────────────────────────────────────────────────
 W_FORWARD     = 1.0
-W_UPRIGHT     = 0.5
+W_UPRIGHT     = 5.0
 W_ENERGY      = 0.001
 W_ACTION      = 0.0005
 W_JOINT_LIMIT = 0.5
@@ -134,7 +134,7 @@ def compute_reward(data: mujoco.MjData, action: np.ndarray,
     # R_zz = 1 - 2(qx² + qy²)  from the rotation-matrix quaternion formula
     qx, qy = float(data.qpos[4]), float(data.qpos[5])
     upright   = 1.0 - 2.0 * (qx**2 + qy**2)       # ∈ [-1, 1]
-    r_upright = W_UPRIGHT * max(0.0, upright)
+    r_upright = W_UPRIGHT * upright
 
     # Energy cost (mechanical power)
     joint_vel = data.qvel[6:].copy()
@@ -293,7 +293,7 @@ class KLAdaptiveLR:
 
     def __init__(self, optimizer, target_kl: float = 0.01,
                  factor: float = 1.5,
-                 min_lr: float = 1e-5, max_lr: float = 1e-2):
+                 min_lr: float = 1e-4, max_lr: float = 1e-2):
         self.optimizer  = optimizer
         self.target_kl  = target_kl
         self.factor     = factor
@@ -361,12 +361,15 @@ def collect_rollout(actor, critic, model, data, buffer,
 # PPO update
 # ─────────────────────────────────────────────────────────────────────────────
 
-def ppo_update(actor, critic, optimizer, buffer,
+def ppo_update(actor, critic, actor_optimizer, critic_optimizer, buffer,
                n_epochs=10, batch_size=64, clip_eps=0.2,
-               value_coef=0.5, entropy_coef=0.02,
-               max_grad_norm=0.5) -> dict:
+               entropy_coef=0.005, max_grad_norm=0.5) -> dict:
     """
     Run K epochs of mini-batch PPO updates over the collected buffer.
+
+    Actor and critic are updated with separate optimizers so that the
+    value-function MSE (which operates on large-scale returns) cannot
+    bleed into the actor's gradient through shared optimizer momentum.
     Returns diagnostic scalars.
     """
     obs_b, acts_b, old_lp_b, adv_b, ret_b = buffer.tensors()
@@ -384,32 +387,34 @@ def ppo_update(actor, critic, optimizer, buffer,
             idx = perm[start:start + batch_size]
 
             new_lp, entropy = actor.evaluate(obs_b[idx], acts_b[idx])
-            values          = critic(obs_b[idx])
 
-            # PPO clipped surrogate objective
+            # ── Actor loss (PPO-clip + entropy bonus) ──────────────────────
             ratio  = (new_lp - old_lp_b[idx]).exp()
             surr1  = ratio * adv_b[idx]
             surr2  = ratio.clamp(1.0 - clip_eps, 1.0 + clip_eps) * adv_b[idx]
-            actor_loss = -torch.min(surr1, surr2).mean()
+            actor_loss = -torch.min(surr1, surr2).mean() - entropy_coef * entropy.mean()
 
-            # Value function loss (MSE)
+            actor_optimizer.zero_grad()
+            actor_loss.backward()
+            nn.utils.clip_grad_norm_(actor.parameters(), max_norm=max_grad_norm)
+            actor_optimizer.step()
+
+            # ── Critic loss (MSE, separate backward pass) ──────────────────
+            values     = critic(obs_b[idx])
             value_loss = 0.5 * (values - ret_b[idx]).pow(2).mean()
 
-            # Entropy bonus (higher coef = more exploration, per paper)
-            loss = actor_loss + value_coef * value_loss - entropy_coef * entropy.mean()
-
-            optimizer.zero_grad()
-            loss.backward()
-            nn.utils.clip_grad_norm_(
-                list(actor.parameters()) + list(critic.parameters()),
-                max_norm=max_grad_norm,
-            )
-            optimizer.step()
+            critic_optimizer.zero_grad()
+            value_loss.backward()
+            nn.utils.clip_grad_norm_(critic.parameters(), max_norm=max_grad_norm)
+            critic_optimizer.step()
 
             with torch.no_grad():
-                kl = (old_lp_b[idx] - new_lp).mean().item()
+                # Divide by ACT_DIM so KL is per-dimension and comparable to
+                # single-action environments.  Without this, an 8-action policy
+                # reports KL ~8× too large, crashing the adaptive LR scheduler.
+                kl = (old_lp_b[idx] - new_lp).mean().item() / ACT_DIM
 
-            total_loss += loss.item()
+            total_loss += actor_loss.item()
             total_kl   += kl
             n_updates  += 1
 
@@ -425,13 +430,13 @@ def train(
     n_steps:          int   = 2048,   # rollout steps per update
     n_epochs:         int   = 10,     # PPO update epochs per rollout
     batch_size:       int   = 64,
-    lr:               float = 3e-4,
+    actor_lr:         float = 3e-4,   # adaptive via KL scheduler
+    critic_lr:        float = 1e-3,   # fixed; higher OK since loss is isolated
     gamma:            float = 0.99,
     gae_lambda:       float = 0.95,
     clip_eps:         float = 0.2,
-    entropy_coef:     float = 0.02,   # slightly elevated, per paper
-    value_coef:       float = 0.5,
-    target_kl:        float = 0.01,
+    entropy_coef:     float = 0.005,  # reduced: prevents std from growing
+    target_kl:        float = 0.01,   # per-dimension KL target
     max_grad_norm:    float = 0.5,
     checkpoint_every: int   = 25,
     results_path:     str   = "ppo_results.pkl",
@@ -440,12 +445,12 @@ def train(
     model  = mujoco.MjModel.from_xml_path(XML_PATH)
     data   = mujoco.MjData(model)
 
-    actor     = Actor()
-    critic    = Critic()
-    optimizer = optim.Adam(
-        list(actor.parameters()) + list(critic.parameters()), lr=lr
-    )
-    kl_sched  = KLAdaptiveLR(optimizer, target_kl=target_kl)
+    actor    = Actor()
+    critic   = Critic()
+    # Separate optimizers: critic LR is fixed (its MSE scale doesn't affect actor)
+    actor_optimizer  = optim.Adam(actor.parameters(),  lr=actor_lr)
+    critic_optimizer = optim.Adam(critic.parameters(), lr=critic_lr)
+    kl_sched  = KLAdaptiveLR(actor_optimizer, target_kl=target_kl)
     buffer    = RolloutBuffer(n_steps)
     history   = []
     start_it  = 0
@@ -454,7 +459,8 @@ def train(
         ckpt = _load(resume_path)
         actor.load_state_dict(ckpt["actor_state"])
         critic.load_state_dict(ckpt["critic_state"])
-        optimizer.load_state_dict(ckpt["optimizer_state"])
+        actor_optimizer.load_state_dict(ckpt["actor_optimizer_state"])
+        critic_optimizer.load_state_dict(ckpt["critic_optimizer_state"])
         history  = ckpt.get("history", [])
         start_it = ckpt.get("iteration", 0)
         print(f"Resumed from '{resume_path}' at iteration {start_it}.")
@@ -479,9 +485,9 @@ def train(
 
         buffer.compute_gae(last_val, gamma, gae_lambda)
 
-        diag   = ppo_update(actor, critic, optimizer, buffer,
-                            n_epochs, batch_size, clip_eps,
-                            value_coef, entropy_coef, max_grad_norm)
+        diag   = ppo_update(actor, critic, actor_optimizer, critic_optimizer,
+                            buffer, n_epochs, batch_size, clip_eps,
+                            entropy_coef, max_grad_norm)
         new_lr = kl_sched.step(diag["kl"])
 
         stats = {
@@ -500,11 +506,12 @@ def train(
               f"{new_lr:>8.2e}  {stats['mean_std']:>7.4f}")
 
         if (it + 1) % checkpoint_every == 0:
-            _save("ppo_checkpoint.pkl", actor, critic, optimizer, history, it + 1)
+            _save("ppo_checkpoint.pkl", actor, critic,
+                  actor_optimizer, critic_optimizer, history, it + 1)
             print(f"  [checkpoint → ppo_checkpoint.pkl]")
 
-    _save(results_path, actor, critic, optimizer, history,
-          start_it + n_iterations)
+    _save(results_path, actor, critic, actor_optimizer, critic_optimizer,
+          history, start_it + n_iterations)
     print(f"\nTraining complete.  Results saved to '{results_path}'.")
     return actor, critic, history
 
@@ -513,14 +520,16 @@ def train(
 # Persistence
 # ─────────────────────────────────────────────────────────────────────────────
 
-def _save(path, actor, critic, optimizer, history, iteration):
+def _save(path, actor, critic, actor_optimizer, critic_optimizer,
+          history, iteration):
     with open(path, "wb") as f:
         pickle.dump({
-            "actor_state":     actor.state_dict(),
-            "critic_state":    critic.state_dict(),
-            "optimizer_state": optimizer.state_dict(),
-            "history":         history,
-            "iteration":       iteration,
+            "actor_state":          actor.state_dict(),
+            "critic_state":         critic.state_dict(),
+            "actor_optimizer_state":  actor_optimizer.state_dict(),
+            "critic_optimizer_state": critic_optimizer.state_dict(),
+            "history":              history,
+            "iteration":            iteration,
         }, f)
 
 
@@ -541,10 +550,11 @@ def _parse_args():
     p.add_argument("--steps",         type=int,   default=2048,  help="Rollout steps per update (default: 2048)")
     p.add_argument("--epochs",        type=int,   default=10,    help="PPO update epochs (default: 10)")
     p.add_argument("--batch",         type=int,   default=64,    help="Mini-batch size (default: 64)")
-    p.add_argument("--lr",            type=float, default=3e-4,  help="Initial learning rate (default: 3e-4)")
+    p.add_argument("--actor-lr",      type=float, default=3e-4,  help="Actor initial LR, adaptive (default: 3e-4)")
+    p.add_argument("--critic-lr",     type=float, default=1e-3,  help="Critic fixed LR (default: 1e-3)")
     p.add_argument("--clip",          type=float, default=0.2,   help="PPO clip epsilon (default: 0.2)")
-    p.add_argument("--entropy",       type=float, default=0.02,  help="Entropy coefficient (default: 0.02)")
-    p.add_argument("--target-kl",     type=float, default=0.01,  help="KL target for adaptive LR (default: 0.01)")
+    p.add_argument("--entropy",       type=float, default=0.005, help="Entropy coefficient (default: 0.005)")
+    p.add_argument("--target-kl",     type=float, default=0.01,  help="Per-dim KL target for adaptive LR (default: 0.01)")
     p.add_argument("--ckpt-every",    type=int,   default=25,    help="Checkpoint interval (default: 25)")
     p.add_argument("--resume",        type=str,   default=None,  help="Resume from checkpoint")
     p.add_argument("--out",           type=str,   default="ppo_results.pkl", help="Output file")
@@ -558,7 +568,8 @@ if __name__ == "__main__":
         n_steps          = args.steps,
         n_epochs         = args.epochs,
         batch_size       = args.batch,
-        lr               = args.lr,
+        actor_lr         = args.actor_lr,
+        critic_lr        = args.critic_lr,
         clip_eps         = args.clip,
         entropy_coef     = args.entropy,
         target_kl        = args.target_kl,

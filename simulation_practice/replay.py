@@ -50,6 +50,13 @@ def _run_viewer(model, data, steps, real_time, ctrl_fn):
     or None if it has already written data.ctrl itself (e.g. PPO PD path).
     """
     with mujoco.viewer.launch_passive(model, data) as viewer:
+        # Lock the camera onto the torso so it follows the robot
+        viewer.cam.trackbodyid = model.body("torso").id
+        viewer.cam.type        = mujoco.mjtCamera.mjCAMERA_TRACKING
+        viewer.cam.distance    = 3.0    # metres from the robot
+        viewer.cam.elevation   = -20    # degrees (negative = looking slightly down)
+        viewer.cam.azimuth     = 90     # degrees (side-on view along x-axis)
+
         t0 = time.time()
         for step in range(steps):
             if not viewer.is_running():
