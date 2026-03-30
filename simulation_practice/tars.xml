@@ -94,21 +94,18 @@
 
         <!-- ── Left Arm Upper ──────────────────────────────────────────── -->
         <body name="left_arm_upper" pos="0.0625 0.0625 -0.5" euler="0 0 0" >
-          <joint name="r_lu" type="hinge" axis="1 0 0" pos="0 0 0.5" range="-5 355" damping="10"/>
+          <joint name="r_lu" type="hinge" axis="1 0 0" pos="0 0 0.5" range="-5 355" />
           <geom name="lu_geom_box" type="box" size="0.0625 0.0625 0.5"
               rgba="1 0 0 1"/>
           <!-- ── Left Arm Lower ──────────────────────────────────────────── -->
           <body name="left_arm_lower" pos="-0.03125 -0.03125 -0.5" euler="0 0 0" >
-            <joint name="r_ll" type="hinge" axis="1 0 0" pos="0 0 0" range="-5 355" damping="3"/>
+            <joint name="r_ll" type="hinge" axis="1 0 0" pos="0 0 0" range="-5 355"/>
             <geom name="ll_geom_box" type="box" size="0.03125 0.03125 0.25"
                 pos="0 0 0.25" rgba="0 1 0 1"/>
           </body>
           
         </body>
         
-
-
-
 
 
       </body>
