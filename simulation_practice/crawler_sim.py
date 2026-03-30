@@ -2,8 +2,7 @@ import math
 import mujoco
 import mujoco.viewer
 import time
-
-model = mujoco.MjModel.from_xml_path("tars.xml")
+model = mujoco.MjModel.from_xml_path("crawler.xml")
 data = mujoco.MjData(model)
 
 # Index of the ml_hinge_pos actuator control
