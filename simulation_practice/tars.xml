@@ -28,11 +28,11 @@
   <option timestep="0.001" integrator="RK4" gravity="0 0 -9.81"/>
 
   <default>
-    <joint limited="true" damping="300" armature="0.01" stiffness="0"/>
+    <joint limited="true" damping="30" armature="0.01" stiffness="0" actuatorfrcrange="-400 400"/>
     <!-- contype=0 conaffinity=0: structural geoms (torso, leg capsules) do not
          participate in any collision.  Feet override this to contype=1 so they
          collide with the floor (conaffinity=1) but not with each other. -->
-    <geom condim="3" friction="1.2 0.005 0.0001" density="1000"
+    <geom condim="3" friction="1.2 0.005 0.0001" density="100"
           contype="0" conaffinity="0"/>
     <motor ctrllimited="true" ctrlrange="-1 1" gear="120"/>
   </default>
@@ -158,16 +158,16 @@
   </worldbody>
 
   <actuator>
-    <position name="ud_lm_pos" joint="ud_lm" kp="5"  ctrlrange="-50 50"/>
-    <position name="ud_mm_pos" joint="ud_mm" kp="5"  ctrlrange="-50 50"/>
-    <position name="ud_rm_pos" joint="ud_rm" kp="5"  ctrlrange="-50 50"/>
-    <position name="r_lm_pos" joint="r_lm" kp="5"  ctrlrange="-355 355"/>
-    <position name="r_mm_pos" joint="r_mm" kp="5"  ctrlrange="-355 355"/>
-    <position name="r_rm_pos" joint="r_rm" kp="5" ctrlrange="-355 355"/>
-    <position name="r_lu_pos" joint="r_lu" kp="5"  ctrlrange="-5 355"/>
-    <position name="r_ru_pos" joint="r_ru" kp="5"  ctrlrange="-5 355"/>
-    <position name="r_ll_pos" joint="r_ll" kp="5"  ctrlrange="-5 355"/>
-    <position name="r_rl_pos" joint="r_rl" kp="5"  ctrlrange="-5 355"/>
+    <position name="ud_lm_pos" joint="ud_lm" kp="0.5"  ctrlrange="-50 50"/>
+    <position name="ud_mm_pos" joint="ud_mm" kp="0.5"  ctrlrange="-50 50"/>
+    <position name="ud_rm_pos" joint="ud_rm" kp="0.5"  ctrlrange="-50 50"/>
+    <position name="r_lm_pos" joint="r_lm" kp="0.5"  ctrlrange="-355 355"/>
+    <position name="r_mm_pos" joint="r_mm" kp="0.5"  ctrlrange="-355 355"/>
+    <position name="r_rm_pos" joint="r_rm" kp="0.5" ctrlrange="-355 355"/>
+    <position name="r_lu_pos" joint="r_lu" kp="0.5"  ctrlrange="-5 355"/>
+    <position name="r_ru_pos" joint="r_ru" kp="0.5"  ctrlrange="-5 355"/>
+    <position name="r_ll_pos" joint="r_ll" kp="0.5"  ctrlrange="-5 355"/>
+    <position name="r_rl_pos" joint="r_rl" kp="0.5"  ctrlrange="-5 355"/>
 
     
   </actuator>

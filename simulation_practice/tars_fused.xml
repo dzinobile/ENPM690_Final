@@ -28,11 +28,11 @@
   <option timestep="0.001" integrator="RK4" gravity="0 0 -9.81"/>
 
   <default>
-    <joint limited="true" damping="400" armature="0.01" stiffness="0"/>
+    <joint limited="true" damping="30" armature="0.01" stiffness="0"/>
     <!-- contype=0 conaffinity=0: structural geoms (torso, leg capsules) do not
          participate in any collision.  Feet override this to contype=1 so they
          collide with the floor (conaffinity=1) but not with each other. -->
-    <geom condim="3" friction="1.2 0.05 0.001" density="1000"
+    <geom condim="3" friction="1.2 0.05 0.001" density="100"
           contype="0" conaffinity="0"/>
     <motor ctrllimited="true" ctrlrange="-1 1" gear="120"/>
   </default>

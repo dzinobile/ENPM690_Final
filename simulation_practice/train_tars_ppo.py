@@ -44,9 +44,9 @@ NUM_ACTUATORS = 10
 # ── Joint limits (degrees → radians) ─────────────────────────────────────────
 
 JOINT_LIMITS = np.array([
-    [-50, 50], # up-down left-middle
-    [-50, 50], # up-down middle-middle
-    [-50, 50], # up-down right-middle
+    [-0.5, 0.5], # up-down left-middle
+    [-0.5, 0.5], # up-down middle-middle
+    [-0.5, 0.5], # up-down right-middle
     [-355, 355], # rotate left-middle
     [-355, 355], # rotate middle-middle
     [-355, 355], # rotate right-middle
@@ -72,11 +72,11 @@ OBS_DIM = 41
 ACT_DIM = NUM_ACTUATORS
 
 # ── Reward weights ─────────────────────────────────────────────────────────────
-W_FORWARD     = 1.0
-W_UPRIGHT     = 5.0
-W_ENERGY      = 0.001
+W_FORWARD     = 5.0
+W_UPRIGHT     = 0.001
+W_ENERGY      = 0.0001
 W_ACTION      = 0.0005
-W_JOINT_LIMIT = 0.5
+W_JOINT_LIMIT = 0.005
 
 
 # ─────────────────────────────────────────────────────────────────────────────
