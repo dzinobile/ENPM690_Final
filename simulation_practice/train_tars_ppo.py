@@ -44,9 +44,9 @@ NUM_ACTUATORS = 10
 # ── Joint limits (degrees → radians) ─────────────────────────────────────────
 
 JOINT_LIMITS = np.array([
-    [-0.5, 0.5], # up-down left-middle
-    [-0.5, 0.5], # up-down middle-middle
-    [-0.5, 0.5], # up-down right-middle
+    [-50, 50], # up-down left-middle
+    [-50, 50], # up-down middle-middle
+    [-50, 50], # up-down right-middle
     [-355, 355], # rotate left-middle
     [-355, 355], # rotate middle-middle
     [-355, 355], # rotate right-middle
@@ -60,10 +60,29 @@ JOINT_LIMITS = np.array([
 for i in range(3,10):
     JOINT_LIMITS[i] = JOINT_LIMITS[i] * (math.pi / 180.0)
 
+# Joint names in actuator order (matches JOINT_LIMITS and data.ctrl order)
+JOINT_NAMES = [
+    "ud_lm", "ud_mm", "ud_rm",
+    "r_lm",  "r_mm",  "r_rm",
+    "r_lu",  "r_ru",  "r_ll",  "r_rl",
+]
+
 _JT_LO   = JOINT_LIMITS[:, 0]
 _JT_HI   = JOINT_LIMITS[:, 1]
 _JT_MID  = (_JT_LO + _JT_HI) / 2.0
 _JT_HALF = (_JT_HI - _JT_LO) / 2.0
+
+
+def _joint_qpos(model: mujoco.MjModel, data: mujoco.MjData) -> np.ndarray:
+    """Return joint positions in actuator order (matches data.ctrl)."""
+    return np.array([data.qpos[model.jnt_qposadr[mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, n)]]
+                     for n in JOINT_NAMES], dtype=np.float32)
+
+
+def _joint_qvel(model: mujoco.MjModel, data: mujoco.MjData) -> np.ndarray:
+    """Return joint velocities in actuator order (matches data.ctrl)."""
+    return np.array([data.qvel[model.jnt_dofadr[mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, n)]]
+                     for n in JOINT_NAMES], dtype=np.float32)
 
 # ── Dimensions ────────────────────────────────────────────────────────────────
 # Observation: z(1) + quat(4) + joint_pos(10) + lin_vel(3) + ang_vel(3)
@@ -73,26 +92,26 @@ ACT_DIM = NUM_ACTUATORS
 
 # ── Reward weights ─────────────────────────────────────────────────────────────
 W_FORWARD     = 5.0
-W_UPRIGHT     = 0.001
-W_ENERGY      = 0.0001
-W_ACTION      = 0.0005
-W_JOINT_LIMIT = 0.005
+W_UPRIGHT     = 0.0
+W_ENERGY      = 0.0
+W_ACTION      = 0.0
+W_JOINT_LIMIT = 0.0
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Observation and control helpers
 # ─────────────────────────────────────────────────────────────────────────────
 
-def get_obs(data: mujoco.MjData, prev_action: np.ndarray) -> np.ndarray:
+def get_obs(model: mujoco.MjModel, data: mujoco.MjData, prev_action: np.ndarray) -> np.ndarray:
     """Build a 41-dim observation vector from MjData + previous action."""
     return np.concatenate([
-        data.qpos[2:3],       # torso z height
-        data.qpos[3:7],       # torso quaternion  (w, x, y, z)
-        data.qpos[7:],        # 8 joint angles    (radians)
-        data.qvel[0:3],       # torso linear  velocity
-        data.qvel[3:6],       # torso angular velocity
-        data.qvel[6:],        # 8 joint velocities
-        prev_action,          # previous action   (for smoothness signal)
+        data.qpos[2:3],              # torso z height
+        data.qpos[3:7],              # torso quaternion  (w, x, y, z)
+        _joint_qpos(model, data),    # 10 joint positions in actuator order
+        data.qvel[0:3],              # torso linear  velocity
+        data.qvel[3:6],              # torso angular velocity
+        _joint_qvel(model, data),    # 10 joint velocities in actuator order
+        prev_action,                 # previous action   (for smoothness signal)
     ]).astype(np.float32)
 
 
@@ -115,8 +134,8 @@ def apply_pd_control(data: mujoco.MjData, action: np.ndarray) -> np.ndarray:
     return data.actuator_force.copy()
 
 
-def compute_reward(data: mujoco.MjData, action: np.ndarray,
-                   torques: np.ndarray) -> float:
+def compute_reward(model: mujoco.MjModel, data: mujoco.MjData,
+                   action: np.ndarray, torques: np.ndarray) -> float:
     """
     r = forward_velocity
       + upright_bonus
@@ -134,14 +153,14 @@ def compute_reward(data: mujoco.MjData, action: np.ndarray,
     r_upright = W_UPRIGHT * upright
 
     # Energy cost (mechanical power: actuator force × joint velocity)
-    joint_vel = data.qvel[6:].copy()
+    joint_vel = _joint_qvel(model, data)
     r_energy  = -W_ENERGY * float(np.abs(torques * joint_vel).sum())
 
     # Action magnitude penalty
     r_action  = -W_ACTION * float(np.dot(action, action))
 
     # Joint limit violation penalty
-    q_joints   = data.qpos[7:].copy()
+    q_joints   = _joint_qpos(model, data)
     violations = (np.maximum(0.0, _JT_LO - q_joints)
                 + np.maximum(0.0, q_joints - _JT_HI))
     r_joint    = -W_JOINT_LIMIT * float(violations.sum())
@@ -326,7 +345,7 @@ def collect_rollout(actor, critic, model, data, buffer,
         if done:
             mujoco.mj_resetData(model, data)
             prev_act = np.zeros(ACT_DIM, dtype=np.float32)
-            obs = get_obs(data, prev_act)
+            obs = get_obs(model, data, prev_act)
             done = False
 
         act, log_prob = actor.act(obs)
@@ -338,9 +357,9 @@ def collect_rollout(actor, critic, model, data, buffer,
         torques = apply_pd_control(data, act)
         mujoco.mj_step(model, data)
 
-        reward  = compute_reward(data, act, torques)
+        reward  = compute_reward(model, data, act, torques)
         done    = bool(data.qpos[2] < MIN_TORSO_Z)
-        next_obs = get_obs(data, act)
+        next_obs = get_obs(model, data, act)
 
         buffer.add(obs, act, log_prob.item(), reward, value, float(done))
         obs, prev_act = next_obs, act
@@ -465,7 +484,7 @@ def train(
     # Initialise environment state
     mujoco.mj_resetData(model, data)
     env_prev_act = np.zeros(ACT_DIM, dtype=np.float32)
-    env_obs      = get_obs(data, env_prev_act)
+    env_obs      = get_obs(model, data, env_prev_act)
     env_done     = False
 
     hdr = (f"{'Iter':>5}  {'MeanRew':>9}  {'TotalRew':>9}  "

@@ -28,7 +28,7 @@
   <option timestep="0.001" integrator="RK4" gravity="0 0 -9.81"/>
 
   <default>
-    <joint limited="true" damping="30" armature="0.01" stiffness="0" actuatorfrcrange="-400 400"/>
+    <joint limited="true" damping="3" armature="0.01" stiffness="0" actuatorfrcrange="-400 400"/>
     <!-- contype=0 conaffinity=0: structural geoms (torso, leg capsules) do not
          participate in any collision.  Feet override this to contype=1 so they
          collide with the floor (conaffinity=1) but not with each other. -->
@@ -62,7 +62,7 @@
       <!-- joint pos: +0.25 x in middle_left's frame = middle_right's center -->
       <body name="middle_left" pos="0.25 0 0" euler="0 0 0" >
         <joint name="ud_mm" type="slide" axis="0 0 1" range="-50 50"/>
-        <joint name="r_mm" type="hinge" axis="1 0 0" pos="0 0 0" range="-90 90"/>
+        <joint name="r_mm" type="hinge" axis="1 0 0" pos="0 0 0" range="-355 355"/>
         <geom name="ml_geom_box" type="box" size="0.125 0.125 0.875"
                rgba="0.55 0.65 0.45 1"/>
         <geom name="ml_geom_cap_pos" type="cylinder" pos="0 0 0.875"

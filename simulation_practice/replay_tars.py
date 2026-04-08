@@ -101,7 +101,7 @@ def replay_ppo(actor: PPOActor, duration: float = 12.0, real_time: bool = True):
 
     def ctrl_fn(_step):
         nonlocal prev_act
-        obs = torch.from_numpy(ppo_get_obs(data, prev_act)).unsqueeze(0)
+        obs = torch.from_numpy(ppo_get_obs(model, data, prev_act)).unsqueeze(0)
         with torch.no_grad():
             act = actor.net(obs).squeeze(0).clamp(-1.0, 1.0).numpy()
         apply_pd_control(data, act)   # writes data.ctrl directly
