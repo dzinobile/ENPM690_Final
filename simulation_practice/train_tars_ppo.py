@@ -92,7 +92,7 @@ ACT_DIM = NUM_ACTUATORS
 
 # ── Reward weights ─────────────────────────────────────────────────────────────
 W_FORWARD     = 5.0
-W_UPRIGHT     = 0.0
+W_UPRIGHT     = 1.0
 W_ENERGY      = 0.0
 W_ACTION      = 0.0
 W_JOINT_LIMIT = 0.0
