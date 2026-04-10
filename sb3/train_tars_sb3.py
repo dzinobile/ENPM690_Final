@@ -36,10 +36,10 @@ NUM_JOINTS  = len(JOINT_NAMES)
 
 # ── Reward weights ────────────────────────────────────────────────────────────
 W_FORWARD = 2.0    # encourage +x velocity
-W_UPRIGHT = 3.0    # penalise tipping (R_zz of torso quaternion)
+W_UPRIGHT = 2.0    # penalise tipping (R_zz of torso quaternion)
 W_HEALTHY = 0.05    # small bonus each step for staying alive
 W_ENERGY  = 0.0001  # penalise |torque * joint_vel|
-W_ACTION  = 0.0002  # penalise large actions (smooth control)
+W_ACTION  = 0.0001  # penalise large actions (smooth control)
 
 # ── Termination ───────────────────────────────────────────────────────────────
 MIN_TORSO_Z = 0.20   # fall termination if torso drops below this height
@@ -123,8 +123,8 @@ class TarsEnv(gym.Env):
         ]).astype(np.float32)
 
     def _compute_reward(self, action: np.ndarray, torques: np.ndarray) -> float:
-        # Forward velocity: +x direction
-        r_forward = W_FORWARD * float(self.data.qvel[0])
+        # Forward velocity: +y direction (toward default camera view)
+        r_forward = W_FORWARD * float(self.data.qvel[1])
 
         # Upright: R_zz = 1 - 2*(qx² + qy²)
         # = 1 when world-z aligns with body-z (torso vertical)
