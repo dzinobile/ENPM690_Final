@@ -23,7 +23,7 @@ from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 _DIR     = os.path.dirname(os.path.abspath(__file__))
-XML_PATH = os.path.join(_DIR, "tars.xml")
+XML_PATH = os.path.join(_DIR, "tars_fused.xml")
 
 # ── Simulation parameters ─────────────────────────────────────────────────────
 # 10 physics steps per RL step → action frequency = 1 / (10 * 0.001) = 100 Hz
@@ -31,12 +31,12 @@ FRAME_SKIP        = 10
 MAX_EPISODE_STEPS = 1000   # 1000 * 10ms = 10 seconds per episode
 
 # ── Joint names in actuator order (must match <actuator> block in XML) ────────
-JOINT_NAMES = ["ud_lm", "ud_mm", "ud_rm", "r_lm", "r_mm", "r_rm", "r_lu", "r_ru", "r_ll", "r_rl"]
+JOINT_NAMES = ["ud_lm", "r_lm", "r_lu", "r_ru", "r_ll", "r_rl"]
 NUM_JOINTS  = len(JOINT_NAMES)
 
 # ── Reward weights ────────────────────────────────────────────────────────────
 W_FORWARD = 2.0    # encourage +x velocity
-W_UPRIGHT = 3.0    # penalise tipping (R_zz of torso quaternion)
+W_UPRIGHT = 2.0    # penalise tipping (R_zz of torso quaternion)
 W_HEALTHY = 0.05    # small bonus each step for staying alive
 W_ENERGY  = 0.0001  # penalise |torque * joint_vel|
 W_ACTION  = 0.0001  # penalise large actions (smooth control)
@@ -53,14 +53,14 @@ class TarsEnv(gym.Env):
     """
     MuJoCo environment for TARS (tars_fused.xml) locomotion.
 
-    Observation (41-dim):
+    Observation (29-dim):
         torso z height     (1)
         torso quaternion   (4)   w, x, y, z
-        joint positions    (10)   actuator order
+        joint positions    (6)   actuator order
         torso lin_vel      (3)
         torso ang_vel      (3)
-        joint velocities   (10)   actuator order
-        previous action    (10)
+        joint velocities   (6)   actuator order
+        previous action    (6)
     """
 
     metadata = {"render_modes": ["human"], "render_fps": 50}
@@ -93,7 +93,7 @@ class TarsEnv(gym.Env):
         self._ctrl_mid  = (ctrl_lo + ctrl_hi) / 2.0
         self._ctrl_half = (ctrl_hi - ctrl_lo) / 2.0
 
-        obs_dim = 1 + 4 + NUM_JOINTS + 3 + 3 + NUM_JOINTS + NUM_JOINTS  # = 41
+        obs_dim = 1 + 4 + NUM_JOINTS + 3 + 3 + NUM_JOINTS + NUM_JOINTS  # = 29
 
         self.observation_space = spaces.Box(
             low=-np.inf, high=np.inf, shape=(obs_dim,), dtype=np.float32
@@ -192,6 +192,7 @@ class TarsEnv(gym.Env):
                 pass
             self._viewer = None
 
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Training
 # ─────────────────────────────────────────────────────────────────────────────
@@ -252,6 +253,7 @@ def train(timesteps: int, n_envs: int, resume: str | None):
     print("Training complete — model saved to tars_ppo_final.zip")
     vec_env.close()
     eval_env.close()
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="SB3 PPO for TARS locomotion")

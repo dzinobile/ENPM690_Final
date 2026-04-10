@@ -3,7 +3,7 @@ import mujoco
 import mujoco.viewer
 import time
 
-model = mujoco.MjModel.from_xml_path("tars_fused.xml")
+model = mujoco.MjModel.from_xml_path("tars.xml")
 data = mujoco.MjData(model)
 
 

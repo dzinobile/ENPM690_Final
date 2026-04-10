@@ -28,7 +28,7 @@
   <option timestep="0.001" integrator="RK4" gravity="0 0 -9.81"/>
 
   <default>
-    <joint limited="true" damping="3" armature="0.01" stiffness="0" actuatorfrcrange="-400 400"/>
+    <joint limited="true" damping="30" armature="0.05" stiffness="0" actuatorfrcrange="-400 400"/>
     <!-- contype=0 conaffinity=0: structural geoms (torso, leg capsules) do not
          participate in any collision.  Feet override this to contype=1 so they
          collide with the floor (conaffinity=1) but not with each other. -->
