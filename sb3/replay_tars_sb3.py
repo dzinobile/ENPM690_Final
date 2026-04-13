@@ -10,6 +10,7 @@ Usage
 """
 
 import argparse
+import os
 import time
 import numpy as np
 from stable_baselines3 import PPO
@@ -56,6 +57,8 @@ def replay(model_path: str, n_episodes: int):
         env.close()
     except Exception:
         pass
+
+    os._exit(0)
 
 
 if __name__ == "__main__":

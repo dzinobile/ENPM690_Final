@@ -43,6 +43,8 @@ W_ACTION  = 0.0001  # penalise large actions (smooth control)
 
 # ── Termination ───────────────────────────────────────────────────────────────
 MIN_TORSO_Z = 0.20   # fall termination if torso drops below this height
+MIN_TORSO_PITCH = -1.4
+MAX_TORSO_PITCH = 1.4    # fall termination if torso pitches beyond these angles
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -169,7 +171,12 @@ class TarsEnv(gym.Env):
         reward = self._compute_reward(action, torques)
 
         self._step_count += 1
-        fallen     = bool(self.data.qpos[2] < MIN_TORSO_Z)
+        w = self.data.qpos[3]
+        qx = self.data.qpos[4]
+        qy = self.data.qpos[5]
+        qz = self.data.qpos[6]
+        pitch = np.arcsin(2.0 * (w * qy - qz * qx))
+        fallen     = bool(self.data.qpos[2] < MIN_TORSO_Z or pitch < MIN_TORSO_PITCH or pitch > MAX_TORSO_PITCH)
         terminated = fallen
         truncated  = self._step_count >= MAX_EPISODE_STEPS
 
