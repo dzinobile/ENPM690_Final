@@ -36,7 +36,8 @@ NUM_JOINTS  = len(JOINT_NAMES)
 
 # ── Reward weights ────────────────────────────────────────────────────────────
 W_FORWARD = 2.0    # encourage +x velocity
-W_UPRIGHT = 3.0    # penalise tipping (R_zz of torso quaternion)
+# W_UPRIGHT = 3.0    # penalise tipping (R_zz of torso quaternion)
+W_BARREL = 3.0      # encourage barrel parallel to floor
 W_HEALTHY = 0.05    # small bonus each step for staying alive
 W_ENERGY  = 0.0001  # penalise |torque * joint_vel|
 W_ACTION  = 0.0001  # penalise large actions (smooth control)
@@ -45,7 +46,7 @@ W_ACTION  = 0.0001  # penalise large actions (smooth control)
 # MIN_TORSO_Z = 0.20   # fall termination if torso drops below this height
 MIN_TORSO_PITCH = -0.8
 MAX_TORSO_PITCH = 0.8    # fall termination if torso pitches beyond these angles
-MAX_BARREL_HEIGHT = 3.0
+MAX_BARREL_HEIGHT = 1.5
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Gymnasium environment
@@ -135,10 +136,12 @@ class TarsEnv(gym.Env):
         # Upright: R_zz = 1 - 2*(qx² + qy²)
         # = 1 when world-z aligns with body-z (torso vertical)
         # = -1 when fully upside-down
-        qx = float(self.data.qpos[4])
-        qy = float(self.data.qpos[5])
-        r_upright = W_UPRIGHT * (1.0 - 2.0 * (qx**2 + qy**2))
-
+        # xmat[body_id, 8] is the world-Z component of the barrel's local Z-axis (Rzz).
+        # When the barrel lies flat (local-Z horizontal), Rzz ≈ 0  → reward = 1.
+        # When it stands upright (local-Z vertical),      Rzz ≈ ±1 → reward = 0.
+        # r_upright = W_UPRIGHT * (1.0 - 2.0 * (qx**2 + qy**2))
+        rzz = float(self.data.xmat[self._barrel_body_id, 8])
+        b_parallel = W_BARREL * (1.0 - rzz**2)  # barrel parallel to floor
         # Alive bonus: reward for not falling
         r_healthy = W_HEALTHY
 
@@ -148,7 +151,7 @@ class TarsEnv(gym.Env):
         # Action smoothness penalty
         r_action = -W_ACTION * float(np.dot(action, action))
 
-        return r_forward + r_upright + r_healthy + r_energy + r_action
+        return r_forward + b_parallel + r_healthy + r_energy + r_action
 
     # ── Gymnasium API ─────────────────────────────────────────────────────────
 
