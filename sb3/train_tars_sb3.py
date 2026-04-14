@@ -35,7 +35,7 @@ JOINT_NAMES = ["ud_lm", "ud_mm", "ud_rm", "r_lm", "r_mm", "r_rm", "r_lu", "r_ru"
 NUM_JOINTS  = len(JOINT_NAMES)
 
 # ── Reward weights ────────────────────────────────────────────────────────────
-W_FORWARD = 2.0    # encourage +x velocity
+W_FORWARD = 2.0    # encourage -y velocity
 W_UPRIGHT = 3.0    # penalise tipping (R_zz of torso quaternion)
 W_HEALTHY = 0.05    # small bonus each step for staying alive
 W_ENERGY  = 0.0001  # penalise |torque * joint_vel|
@@ -43,8 +43,8 @@ W_ACTION  = 0.0001  # penalise large actions (smooth control)
 
 # ── Termination ───────────────────────────────────────────────────────────────
 MIN_TORSO_Z = 0.20   # fall termination if torso drops below this height
-MIN_TORSO_PITCH = -1.4
-MAX_TORSO_PITCH = 1.4    # fall termination if torso pitches beyond these angles
+MIN_TORSO_PITCH = -0.8
+MAX_TORSO_PITCH = 0.8    # fall termination if torso pitches beyond these angles
 
 
 # ─────────────────────────────────────────────────────────────────────────────

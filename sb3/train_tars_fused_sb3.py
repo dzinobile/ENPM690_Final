@@ -3,10 +3,10 @@ SB3 PPO for tars_fused.xml locomotion.
 
 Usage
 -----
-  python train_tars_sb3.py                        # fresh run, 4 parallel envs
-  python train_tars_sb3.py --timesteps 5000000    # longer run
-  python train_tars_sb3.py --n-envs 8             # more parallel envs
-  python train_tars_sb3.py --resume checkpoints/tars_ppo_1000000_steps
+  python train_tars_fused_sb3.py                        # fresh run, 4 parallel envs
+  python train_tars_fused_sb3.py --timesteps 5000000    # longer run
+  python train_tars_fused_sb3.py --n-envs 8             # more parallel envs
+  python train_tars_fused_sb3.py --resume checkpoints/tars_ppo_1000000_steps
   python replay_tars_sb3.py --model best_model/best_model  # visualise
 """
 
@@ -205,13 +205,13 @@ def train(timesteps: int, n_envs: int, resume: str | None):
         CheckpointCallback(
             save_freq=max(50_000 // n_envs, 1),
             save_path="./checkpoints/",
-            name_prefix="tars_ppo",
+            name_prefix="tars_fused_ppo",
         ),
         EvalCallback(
             eval_env,
             eval_freq=max(25_000 // n_envs, 1),
             n_eval_episodes=5,
-            best_model_save_path="./best_model/",
+            best_model_save_path="./best_model_fused/",
             verbose=1,
         ),
     ]
@@ -249,8 +249,8 @@ def train(timesteps: int, n_envs: int, resume: str | None):
         callback=callbacks,
         reset_num_timesteps=(resume is None),
     )
-    model.save("tars_ppo_final")
-    print("Training complete — model saved to tars_ppo_final.zip")
+    model.save("tars_fused_ppo_final")
+    print("Training complete — model saved to tars_fused_ppo_final.zip")
     vec_env.close()
     eval_env.close()
 
