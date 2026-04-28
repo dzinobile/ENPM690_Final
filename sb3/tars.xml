@@ -2,7 +2,6 @@
   TARS Model
 
   Structure
-  ---------
   4 main slabs with (left, middle x2, right)
   2 upper arms (left, right)
   2 lower arms (lower x2)
@@ -21,6 +20,7 @@
 
   Forward direction is +x.  
 -->
+
 <mujoco model="tars">
 
   <compiler angle="degree"/>
