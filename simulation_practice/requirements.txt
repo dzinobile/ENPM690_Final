@@ -1,4 +1,0 @@
-mujoco>=3.0.0
-deap>=1.4.0
-numpy>=1.24.0
-torch>=2.0.0
