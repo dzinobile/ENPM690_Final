@@ -19,7 +19,7 @@ from gymnasium import spaces
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.vec_env import SubprocVecEnv
-from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback
+from stable_baselines3.common.callbacks import BaseCallback, CheckpointCallback, EvalCallback
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 _DIR     = os.path.dirname(os.path.abspath(__file__))
@@ -35,9 +35,9 @@ JOINT_NAMES = ["ud_lm", "ud_mm", "ud_rm", "r_lm", "r_mm", "r_rm", "r_lu", "r_ru"
 NUM_JOINTS  = len(JOINT_NAMES)
 
 # ── Reward weights ────────────────────────────────────────────────────────────
-W_FORWARD = 2.0    # encourage +x velocity
-# W_UPRIGHT = 3.0    # penalise tipping (R_zz of torso quaternion)
-W_BARREL = 3.0      # encourage barrel parallel to floor
+W_FORWARD = 3.0    # encourage +x velocity
+W_UPRIGHT = 3.0    # penalise tipping (R_zz of torso quaternion)
+W_BARREL = 2.0      # encourage barrel parallel to floor
 W_HEALTHY = 0.05    # small bonus each step for staying alive
 W_ENERGY  = 0.0001  # penalise |torque * joint_vel|
 W_ACTION  = 0.0001  # penalise large actions (smooth control)
@@ -109,6 +109,8 @@ class TarsEnv(gym.Env):
             low=-1.0, high=1.0, shape=(NUM_JOINTS,), dtype=np.float32
         )
         self._prev_action = np.zeros(NUM_JOINTS, dtype=np.float32)
+        self._start_y: float = 0.0
+        self._barrel_rzz_history: list[float] = []
 
     # ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -129,18 +131,16 @@ class TarsEnv(gym.Env):
             self._prev_action,       # previous action
         ]).astype(np.float32)
 
-    def _compute_reward(self, action: np.ndarray, torques: np.ndarray) -> float:
-        # Forward velocity: +y direction (toward default camera view)
+    def _compute_reward(self, action: np.ndarray, torques: np.ndarray, rzz: float) -> float:
+        # Forward velocity: -y direction
         r_forward = W_FORWARD * float(-self.data.qvel[1])
 
-        # Upright: R_zz = 1 - 2*(qx² + qy²)
-        # = 1 when world-z aligns with body-z (torso vertical)
-        # = -1 when fully upside-down
-        # xmat[body_id, 8] is the world-Z component of the barrel's local Z-axis (Rzz).
-        # When the barrel lies flat (local-Z horizontal), Rzz ≈ 0  → reward = 1.
-        # When it stands upright (local-Z vertical),      Rzz ≈ ±1 → reward = 0.
-        # r_upright = W_UPRIGHT * (1.0 - 2.0 * (qx**2 + qy**2))
-        rzz = float(self.data.xmat[self._barrel_body_id, 8])
+        # rzz is the world-Z component of the barrel's local Z-axis (precomputed in step).
+        # When the barrel lies flat (local-Z horizontal), rzz ≈ 0  → reward = 1.
+        # When it stands upright (local-Z vertical),      rzz ≈ ±1 → reward = 0.
+        qx = float(self.data.qpos[4])
+        qy = float(self.data.qpos[5])
+        r_upright = W_UPRIGHT * (1.0 - 2.0 * (qx**2 + qy**2))
         b_parallel = W_BARREL * (1.0 - rzz**2)  # barrel parallel to floor
         # Alive bonus: reward for not falling
         r_healthy = W_HEALTHY
@@ -151,7 +151,7 @@ class TarsEnv(gym.Env):
         # Action smoothness penalty
         r_action = -W_ACTION * float(np.dot(action, action))
 
-        return r_forward + b_parallel + r_healthy + r_energy + r_action
+        return r_forward + b_parallel + r_healthy + r_energy + r_action + r_upright
 
     # ── Gymnasium API ─────────────────────────────────────────────────────────
 
@@ -162,6 +162,8 @@ class TarsEnv(gym.Env):
         self.data.ctrl[:] = [0, 0, 0, 0, 0, 0, 320, 320, 200, 200]
         self._prev_action = np.zeros(NUM_JOINTS, dtype=np.float32)
         self._step_count  = 0
+        self._start_y = float(self.data.qpos[1])
+        self._barrel_rzz_history = []
         return self._get_obs(), {}
 
     def step(self, action):
@@ -175,9 +177,11 @@ class TarsEnv(gym.Env):
             mujoco.mj_step(self.model, self.data)
 
         torques = self.data.actuator_force.copy()
+        rzz = float(self.data.xmat[self._barrel_body_id, 8])
+        self._barrel_rzz_history.append(rzz)
 
         obs    = self._get_obs()
-        reward = self._compute_reward(action, torques)
+        reward = self._compute_reward(action, torques, rzz)
 
         self._step_count += 1
         w = self.data.qpos[3]
@@ -200,8 +204,15 @@ class TarsEnv(gym.Env):
         terminated = fallen or barrel_too_high or barrel_on_floor
         truncated  = self._step_count >= MAX_EPISODE_STEPS
 
+        info = {}
+        if terminated or truncated:
+            parallel = np.array([1.0 - r**2 for r in self._barrel_rzz_history])
+            info["distance_traveled"]    = self._start_y - float(self.data.qpos[1])
+            info["barrel_parallel_mean"] = float(np.mean(parallel))
+            info["barrel_parallel_std"]  = float(np.std(parallel))
+
         self._prev_action = action
-        return obs, reward, terminated, truncated, {}
+        return obs, reward, terminated, truncated, info
 
     def render(self):
         if self.render_mode != "human":
@@ -220,6 +231,22 @@ class TarsEnv(gym.Env):
             self._viewer = None
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Callbacks
+# ─────────────────────────────────────────────────────────────────────────────
+
+class EpisodeStatsCallback(BaseCallback):
+    """Logs per-episode distance_traveled and barrel steadiness to TensorBoard."""
+
+    def _on_step(self) -> bool:
+        for info in self.locals.get("infos", []):
+            if "distance_traveled" in info:
+                self.logger.record_mean("episode/distance_traveled",    info["distance_traveled"])
+                self.logger.record_mean("episode/barrel_parallel_mean", info["barrel_parallel_mean"])
+                self.logger.record_mean("episode/barrel_parallel_std",  info["barrel_parallel_std"])
+        return True
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Training
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -228,6 +255,7 @@ def train(timesteps: int, n_envs: int, resume: str | None):
     eval_env = TarsEnv()
 
     callbacks = [
+        EpisodeStatsCallback(),
         CheckpointCallback(
             save_freq=max(50_000 // n_envs, 1),
             save_path="./checkpoints/",
@@ -250,6 +278,7 @@ def train(timesteps: int, n_envs: int, resume: str | None):
             "MlpPolicy",
             vec_env,
             verbose=1,
+            tensorboard_log="./logs/",
             # Rollout / update
             n_steps=2048,
             batch_size=64,
