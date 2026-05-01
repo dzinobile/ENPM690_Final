@@ -25,6 +25,11 @@
 
   <compiler angle="degree"/>
 
+  <asset>
+    <texture name="body" type="cube" builtin="flat" mark="cross" width="128" height="128" rgb1="0.8 0.6 0.4" rgb2="0.8 0.6 0.4" markrgb="1 1 1"/>
+    <material name="body" texture="body" texuniform="true" rgba="0.8 0.6 .4 1"/>
+  </asset>
+
   <option timestep="0.001" integrator="RK4" gravity="0 0 -9.81"/>
 
   <default>
@@ -35,6 +40,35 @@
     <geom condim="3" friction="1.2 0.005 0.0001" density="100"
           contype="0" conaffinity="0"/>
     <motor ctrllimited="true" ctrlrange="-1 1" gear="120"/>
+    <!-- humanoid body defaults (applied via childclass="body" on human_torso) -->
+    <default class="body">
+      <geom type="capsule" condim="1" friction=".7" solimp=".9 .99 .003" solref=".015 1"
+            material="body" group="1" contype="1" conaffinity="1"/>
+      <default class="thigh">
+        <geom size=".06"/>
+      </default>
+      <default class="shin">
+        <geom fromto="0 0 0 0 0 -.3" size=".049"/>
+      </default>
+      <default class="foot">
+        <geom size=".027"/>
+        <default class="foot1">
+          <geom fromto="-.07 -.01 0 .14 -.03 0"/>
+        </default>
+        <default class="foot2">
+          <geom fromto="-.07 .01 0 .14  .03 0"/>
+        </default>
+      </default>
+      <default class="arm_upper">
+        <geom size=".04"/>
+      </default>
+      <default class="arm_lower">
+        <geom size=".031"/>
+      </default>
+      <default class="hand">
+        <geom type="sphere" size=".04"/>
+      </default>
+    </default>
   </default>
 
   <worldbody>
@@ -153,15 +187,67 @@
       </body>
     </body>
 
-    <body name="barrel" pos="0.125 -0.9 0.7" euler="0 90 0">
-      <freejoint name="barrel_root"/>
-      <geom name="barrel_geom" type="cylinder" size="0.2 0.75" rgba="0.75 0.25 0.25 1"
-            contype="2" conaffinity="1"/>
+    <body name="human_torso" pos="2 0 1.282" childclass="body">
+      <freejoint name="human_root"/>
+      <geom name="human_torso" fromto="0 -.07 0 0 .07 0" size=".07"/>
+      <geom name="waist_upper" fromto="-.01 -.06 -.12 -.01 .06 -.12" size=".06"/>
+      <body name="head" pos="0 0 .19">
+        <geom name="head" type="sphere" size=".09"/>
+      </body>
+      <body name="waist_lower" pos="-.01 0 -.26">
+        <geom name="waist_lower" fromto="0 -.06 0 0 .06 0" size=".06"/>
+        <body name="pelvis" pos="0 0 -.165">
+          <geom name="butt" fromto="-.02 -.07 0 -.02 .07 0" size=".09"/>
+          <body name="thigh_right" pos="0 -.1 -.04">
+            <geom name="thigh_right" fromto="0 0 0 0 .01 -.34" class="thigh"/>
+            <body name="shin_right" pos="0 .01 -.4">
+              <geom name="shin_right" class="shin"/>
+              <body name="foot_right" pos="0 0 -.39">
+                <geom name="foot1_right" class="foot1"/>
+                <geom name="foot2_right" class="foot2"/>
+              </body>
+            </body>
+          </body>
+          <body name="thigh_left" pos="0 .1 -.04">
+            <geom name="thigh_left" fromto="0 0 0 0 -.01 -.34" class="thigh"/>
+            <body name="shin_left" pos="0 -.01 -.4">
+              <geom name="shin_left" fromto="0 0 0 0 0 -.3" class="shin"/>
+              <body name="foot_left" pos="0 0 -.39">
+                <geom name="foot1_left" class="foot1"/>
+                <geom name="foot2_left" class="foot2"/>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+      <body name="upper_arm_right" pos="0 -.17 .06">
+        <geom name="upper_arm_right" fromto="0 0 0 0 0 -.28" class="arm_upper"/>
+        <body name="lower_arm_right" pos="0 0 -.28">
+          <geom name="lower_arm_right" fromto="0 0 0 0 0 -.25" class="arm_lower"/>
+          <body name="hand_right" pos="0 0 -.25">
+            <geom name="hand_right" zaxis="0 0 -1" class="hand"/>
+          </body>
+        </body>
+      </body>
+      <body name="upper_arm_left" pos="0 .17 .06">
+        <geom name="upper_arm_left" fromto="0 0 0 0 0 -.28" class="arm_upper"/>
+        <body name="lower_arm_left" pos="0 0 -.28">
+          <geom name="lower_arm_left" fromto="0 0 0 0 0 -.25" class="arm_lower"/>
+          <body name="hand_left" pos="0 0 -.25">
+            <geom name="hand_left" zaxis="0 0 -1" class="hand"/>
+          </body>
+        </body>
+      </body>
     </body>
   </worldbody>
 
+  <contact>
+    <exclude body1="waist_lower" body2="thigh_right"/>
+    <exclude body1="waist_lower" body2="thigh_left"/>
+  </contact>
+
   <keyframe>
-    <key name="init" qpos="0 0 0.8 0.924 0.383 0 0 0 0 0 0 2.8 1.75 0 0 2.8 1.75 0.125 -0.9 0.7 0.707 0 0.707 0"/>
+    <key name="init" qpos="0 0 0.8 0.924 0.383 0 0 0 0 0 0 2.8 1.75 0 0 2.8 1.75 -0.3 -0.8 0.7 0.707 0 -0.707 0"/>
   </keyframe>
 
 

@@ -23,7 +23,7 @@ from stable_baselines3.common.callbacks import BaseCallback, CheckpointCallback,
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 _DIR     = os.path.dirname(os.path.abspath(__file__))
-XML_PATH = os.path.join(_DIR, "tars_with_barrel.xml")
+XML_PATH = os.path.join(_DIR, "tars_with_human.xml")
 
 # ── Simulation parameters ─────────────────────────────────────────────────────
 # 10 physics steps per RL step → action frequency = 1 / (10 * 0.001) = 100 Hz
@@ -37,7 +37,7 @@ NUM_JOINTS  = len(JOINT_NAMES)
 # ── Reward weights ────────────────────────────────────────────────────────────
 W_FORWARD = 3.0    # encourage +x velocity
 W_UPRIGHT = 3.0    # penalise tipping (R_zz of torso quaternion)
-W_BARREL = 2.0      # encourage barrel parallel to floor
+W_HUMAN = 2.0      # encourage human parallel to floor
 W_HEALTHY = 0.05    # small bonus each step for staying alive
 W_ENERGY  = 0.0001  # penalise |torque * joint_vel|
 W_ACTION  = 0.0001  # penalise large actions (smooth control)
@@ -46,7 +46,7 @@ W_ACTION  = 0.0001  # penalise large actions (smooth control)
 # MIN_TORSO_Z = 0.20   # fall termination if torso drops below this height
 MIN_TORSO_PITCH = -0.8
 MAX_TORSO_PITCH = 0.8    # fall termination if torso pitches beyond these angles
-MAX_BARREL_HEIGHT = 1.5
+MAX_HUMAN_HEIGHT = 1.5
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Gymnasium environment
@@ -54,7 +54,7 @@ MAX_BARREL_HEIGHT = 1.5
 
 class TarsEnv(gym.Env):
     """
-    MuJoCo environment for TARS (tars_with_barrel.xml) locomotion.
+    MuJoCo environment for TARS (tars_with_human.xml) locomotion.
 
     Observation (41-dim):
         torso z height     (1)
@@ -76,9 +76,10 @@ class TarsEnv(gym.Env):
         self._viewer     = None
         self._step_count = 0
 
-        self._barrel_geom_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, "barrel_geom")
-        self._barrel_body_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "barrel")
-
+        self._human_thigh_geom_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, "thigh_left")
+        self._human_thigh_body_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "thigh_left")
+        
+        
         self._floor_geom_id  = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, "floor")
 
         self._mr_geom_box_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, "middle_geom_box")
@@ -91,7 +92,10 @@ class TarsEnv(gym.Env):
         self._ml_geom_cap2_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, "ml_geom_cap_neg")
         self._ml_body_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "middle_left")
        
-
+        self._ur_geom_box_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, "ru_geom_box")
+        self._lr_geom_box_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, "rl_geom_box")
+        self._ul_geom_box_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, "lu_geom_box")
+        self._ll_geom_box_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, "ll_geom_box")
 
 
 
@@ -125,7 +129,7 @@ class TarsEnv(gym.Env):
         )
         self._prev_action = np.zeros(NUM_JOINTS, dtype=np.float32)
         self._start_y: float = 0.0
-        self._barrel_rzz_history: list[float] = []
+        self._human_rzz_history: list[float] = []
 
     # ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -155,11 +159,11 @@ class TarsEnv(gym.Env):
         qy = float(self.data.qpos[5])
         r_upright = W_UPRIGHT * (1.0 - 2.0 * (qx**2 + qy**2))
 
-        # rzz is the world-Z component of the barrel's local Z-axis (precomputed in step).
-        # When the barrel lies flat (local-Z horizontal), rzz ≈ 0  → reward = 1.
+        # rzz is the world-Z component of the human left thigh's local Z-axis (precomputed in step).
+        # When the human left thigh lies flat (local-Z horizontal), rzz ≈ 0  → reward = 1.
         # When it stands upright (local-Z vertical),      rzz ≈ ±1 → reward = 0.
 
-        b_parallel = W_BARREL * (1.0 - rzz**2)  # barrel parallel to floor
+        b_parallel = W_HUMAN * (1.0 - rzz**2)  # human parallel to floor
         # Alive bonus: reward for not falling
         r_healthy = W_HEALTHY
 
@@ -175,13 +179,13 @@ class TarsEnv(gym.Env):
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
-        mujoco.mj_resetDataKeyframe(self.model, self.data, 0) # Initialize holding barrel in arms
+        mujoco.mj_resetDataKeyframe(self.model, self.data, 0) # Initialize holding human in arms
         mujoco.mj_forward(self.model, self.data)
         self.data.ctrl[:] = [0, 0, 0, 0, 0, 0, 320, 320, 200, 200]
         self._prev_action = np.zeros(NUM_JOINTS, dtype=np.float32)
         self._step_count  = 0
         self._start_y = float(self.data.qpos[1])
-        self._barrel_rzz_history = []
+        self._human_rzz_history = []
         return self._get_obs(), {}
 
     def step(self, action):
@@ -195,8 +199,8 @@ class TarsEnv(gym.Env):
             mujoco.mj_step(self.model, self.data)
 
         torques = self.data.actuator_force.copy()
-        rzz = float(self.data.xmat[self._barrel_body_id, 8])
-        self._barrel_rzz_history.append(rzz)
+        rzz = float(self.data.xmat[self._human_thigh_body_id, 8])
+        self._human_rzz_history.append(rzz)
 
         obs    = self._get_obs()
         reward = self._compute_reward(action, torques, rzz)
@@ -206,52 +210,63 @@ class TarsEnv(gym.Env):
         qx = self.data.qpos[4]
         qy = self.data.qpos[5]
         qz = self.data.qpos[6]
-        barrel_z = self.data.xpos[self._barrel_body_id, 2]
-        barrel_too_high = barrel_z > MAX_BARREL_HEIGHT
+        human_z = self.data.xpos[self._human_thigh_body_id, 2]
+        human_too_high = human_z > MAX_HUMAN_HEIGHT
 
-        barrel_on_floor = False
+        human_on_floor = False
         for i in range(self.data.ncon):
             c = self.data.contact[i]
             geoms = {c.geom1, c.geom2}
-            if self._barrel_geom_id in geoms and self._floor_geom_id in geoms:
+            if self._human_thigh_geom_id in geoms and self._floor_geom_id in geoms:
                 barrel_on_floor = True
                 break
 
-        barrel_contact_middle_right = False
+        # barrel_contact_middle_right = False
+        # for i in range(self.data.ncon):
+        #     c = self.data.contact[i]
+        #     geoms = {c.geom1, c.geom2}
+        #     if self._human_geom_id in geoms:
+        #         if self._mr_geom_box_id in geoms:
+        #             barrel_contact_middle_right = True
+        #             break
+        #         elif self._mr_geom_cap1_id in geoms:
+        #             barrel_contact_middle_right = True
+        #             break
+        #         elif self._mr_geom_cap2_id in geoms:
+        #             barrel_contact_middle_right = True
+        #             break
+        #         elif self._ml_geom_box_id in geoms:
+        #             barrel_contact_middle_right = True
+        #             break
+        #         elif self._ml_geom_cap1_id in geoms:
+        #             barrel_contact_middle_right = True
+        #             break
+        #         elif self._ml_geom_cap2_id in geoms:
+        #             barrel_contact_middle_right = True
+        #             break
+
+        arm_floor_contact = False
         for i in range(self.data.ncon):
             c = self.data.contact[i]
             geoms = {c.geom1, c.geom2}
-            if self._barrel_geom_id in geoms:
-                if self._mr_geom_box_id in geoms:
-                    barrel_contact_middle_right = True
-                    break
-                elif self._mr_geom_cap1_id in geoms:
-                    barrel_contact_middle_right = True
-                    break
-                elif self._mr_geom_cap2_id in geoms:
-                    barrel_contact_middle_right = True
-                    break
-                elif self._ml_geom_box_id in geoms:
-                    barrel_contact_middle_right = True
-                    break
-                elif self._ml_geom_cap1_id in geoms:
-                    barrel_contact_middle_right = True
-                    break
-                elif self._ml_geom_cap2_id in geoms:
-                    barrel_contact_middle_right = True
+            if self._floor_geom_id in geoms:
+                if self._ur_geom_box_id in geoms or self._lr_geom_box_id in geoms or self._ul_geom_box_id in geoms or self._ll_geom_box_id in geoms:
+                    arm_floor_contact = True
                     break
 
         pitch = np.arcsin(2.0 * (w * qy - qz * qx))
         fallen     = bool(pitch < MIN_TORSO_PITCH or pitch > MAX_TORSO_PITCH)
-        terminated = fallen or barrel_too_high or barrel_on_floor #or barrel_contact_middle_right
+        terminated = fallen or human_too_high or human_on_floor or arm_floor_contact #or barrel_contact_middle_right
         truncated  = self._step_count >= MAX_EPISODE_STEPS
 
         info = {}
+        steady_threshold = 0.9
         if terminated or truncated:
-            parallel = np.array([1.0 - r**2 for r in self._barrel_rzz_history])
+            parallel = np.array([1.0 - r**2 for r in self._human_rzz_history])
             info["distance_traveled"]    = self._start_y - float(self.data.qpos[1])
-            info["barrel_parallel_mean"] = float(np.mean(parallel))
-            info["barrel_parallel_std"]  = float(np.std(parallel))
+            info["human_parallel_mean"] = float(np.mean(parallel))
+            # info["barrel_parallel_std"]  = float(np.std(parallel))
+            info["human_fraction_steady"] = float(np.mean(parallel > steady_threshold))
 
         self._prev_action = action
         return obs, reward, terminated, truncated, info
@@ -277,14 +292,15 @@ class TarsEnv(gym.Env):
 # ─────────────────────────────────────────────────────────────────────────────
 
 class EpisodeStatsCallback(BaseCallback):
-    """Logs per-episode distance_traveled and barrel steadiness to TensorBoard."""
+    """Logs per-episode distance_traveled and human steadiness to TensorBoard."""
 
     def _on_step(self) -> bool:
         for info in self.locals.get("infos", []):
             if "distance_traveled" in info:
                 self.logger.record_mean("episode/distance_traveled",    info["distance_traveled"])
-                self.logger.record_mean("episode/barrel_parallel_mean", info["barrel_parallel_mean"])
-                self.logger.record_mean("episode/barrel_parallel_std",  info["barrel_parallel_std"])
+                self.logger.record_mean("episode/human_parallel_mean", info["human_parallel_mean"])
+                # self.logger.record_mean("episode/barrel_parallel_std",  info["barrel_parallel_std"])
+                self.logger.record_mean("episode/human_fraction_steady", info["human_fraction_steady"])
         return True
 
 
