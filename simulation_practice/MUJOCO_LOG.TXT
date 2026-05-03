@@ -1777,3 +1777,9 @@ WARNING: Nan, Inf or huge value in QPOS at DOF 0. The simulation is unstable. Ti
 Tue Apr  7 17:25:44 2026
 WARNING: Nan, Inf or huge value in QVEL at DOF 0. The simulation is unstable. Time = 0.0100.
 
+Sun May  3 15:59:54 2026
+WARNING: OpenGL error 0x502 in or before mjr_makeContext
+
+Sun May  3 16:00:37 2026
+WARNING: OpenGL error 0x502 in or before mjr_makeContext
+
