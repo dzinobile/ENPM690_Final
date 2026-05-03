@@ -39,8 +39,7 @@
 
   <worldbody>
     <light name="sun" pos="0 0 6" dir="0 0 -1" diffuse="1 1 1" specular="0.3 0.3 0.3"/>
-    <geom name="floor" type="plane" size="50 50 0.1"
-          rgba="0.75 0.85 0.75 1" contype="1" conaffinity="1"/>
+    <geom name="floor" type="plane" size="50 50 0.1" rgba="0.75 0.85 0.75 1" contype="1" conaffinity="1"/>
 
     <!-- ── Middle Right ──────────────────────────────────────────────────────── -->
     <body name="middle_right" pos="0 0 1.1" euler="45 0 0">
