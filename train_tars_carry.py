@@ -35,7 +35,7 @@ JOINT_NAMES = ["ud_lm", "ud_mm", "ud_rm", "r_lm", "r_mm", "r_rm", "r_lu", "r_ru"
 NUM_JOINTS  = len(JOINT_NAMES)
 
 # ── Reward weights ────────────────────────────────────────────────────────────
-W_FORWARD = 3.0    # encourage +x velocity
+W_FORWARD = 3.0    # encourage -y velocity
 W_UPRIGHT = 3.0    # penalise tipping (R_zz of torso quaternion)
 W_HUMAN = 2.0      # encourage human parallel to floor
 W_HEALTHY = 0.05    # small bonus each step for staying alive
@@ -79,6 +79,17 @@ class TarsEnv(gym.Env):
         self._human_thigh_geom_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, "thigh_left")
         self._human_thigh_body_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "thigh_left")
         
+        self._head_geom_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, "head")
+        self._head_body_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "head")
+
+        self._left_foot_1_geom_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, "foot1_left")
+        self._left_foot_2_geom_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, "foot2_left")
+        self._left_foot_body_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "foot_left")
+
+        self._right_foot_1_geom_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, "foot1_right")
+        self._right_foot_2_geom_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, "foot2_right")
+        self._right_foot_body_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "foot_right")
+
         
         self._floor_geom_id  = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, "floor")
 
@@ -97,6 +108,7 @@ class TarsEnv(gym.Env):
         self._ul_geom_box_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, "lu_geom_box")
         self._ll_geom_box_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, "ll_geom_box")
 
+        
 
 
         # Pre-compute qpos / qvel addresses in actuator order to avoid the
@@ -217,9 +229,23 @@ class TarsEnv(gym.Env):
         for i in range(self.data.ncon):
             c = self.data.contact[i]
             geoms = {c.geom1, c.geom2}
-            if self._human_thigh_geom_id in geoms and self._floor_geom_id in geoms:
-                barrel_on_floor = True
-                break
+            if self._floor_geom_id in geoms:
+                if self._head_geom_id in geoms:
+                    human_on_floor = True
+                    break
+                elif self._left_foot_1_geom_id in geoms:
+                    human_on_floor = True
+                    break
+                elif self._left_foot_2_geom_id in geoms:
+                    human_on_floor = True
+                    break
+                elif self._right_foot_1_geom_id in geoms:
+                    human_on_floor = True
+                    break
+                elif self._right_foot_2_geom_id in geoms:
+                    human_on_floor = True
+                    break
+
 
         # barrel_contact_middle_right = False
         # for i in range(self.data.ncon):
