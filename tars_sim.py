@@ -14,12 +14,10 @@ data = mujoco.MjData(model)
 if args.xml == "tars_with_human.xml":
     mujoco.mj_resetDataKeyframe(model, data, 0)
     mujoco.mj_forward(model, data)
-    data.ctrl[:] = [0, 0, -114, 0, 228, 228, 0, 0, -114, 0, 228, 228]
 
 if args.xml == "tars.xml":
     mujoco.mj_resetDataKeyframe(model, data, 0)
     mujoco.mj_forward(model, data)
-    data.ctrl[:] = [0, 0, -114, 0, 228, 228, 0, 0, -114, 0, 228, 228]
 
 # print(model.body_mass)
 # # print COMs (optional: skip world body)
