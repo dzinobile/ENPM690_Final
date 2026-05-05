@@ -23,7 +23,7 @@ from stable_baselines3.common.callbacks import BaseCallback, CheckpointCallback,
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 _DIR     = os.path.dirname(os.path.abspath(__file__))
-XML_PATH = os.path.join(_DIR, "tars_meshed.xml")
+XML_PATH = os.path.join(_DIR, "tars2_meshed.xml")
 
 # ── Simulation parameters ─────────────────────────────────────────────────────
 # 10 physics steps per RL step → action frequency = 1 / (10 * 0.001) = 100 Hz
@@ -31,7 +31,7 @@ FRAME_SKIP        = 10
 MAX_EPISODE_STEPS = 1000   # 1000 * 10ms = 10 seconds per episode
 
 # ── Joint names in actuator order (must match <actuator> block in XML) ────────
-JOINT_NAMES = ["ud_lm", "ud_mm", "ud_rm", "r_lm", "r_mm", "r_rm", "r_lu", "r_ru", "r_ll", "r_rl"]
+JOINT_NAMES = ["r_lm", "ud_lm", "r_l", "ud_l", "r_lu", "r_ll", "r_rm", "ud_rm", "r_r", "ud_r", "r_ru", "r_rl" ]
 NUM_JOINTS  = len(JOINT_NAMES)
 
 # ── Reward weights ────────────────────────────────────────────────────────────
@@ -144,22 +144,22 @@ class TarsEnv(gym.Env):
 
     def _get_obs(self) -> np.ndarray:
         return np.concatenate([
-            self.data.qpos[2:3],     # torso z height
-            self.data.qpos[3:7],     # torso quaternion (w, x, y, z)
-            self._joint_qpos(),      # joint positions  (actuator order)
-            self.data.qvel[0:3],     # torso linear  velocity
-            self.data.qvel[3:6],     # torso angular velocity
-            self._joint_qvel(),      # joint velocities (actuator order)
-            self._prev_action,       # previous action
+            self.data.xpos[self._base_link_id, 2:3],   # base_link z height
+            self.data.xquat[self._base_link_id],        # base_link quaternion (w, x, y, z)
+            self._joint_qpos(),                          # joint positions  (actuator order)
+            self.data.cvel[self._base_link_id, 3:6],   # base_link linear  velocity (world)
+            self.data.cvel[self._base_link_id, 0:3],   # base_link angular velocity (world)
+            self._joint_qvel(),                          # joint velocities (actuator order)
+            self._prev_action,                           # previous action
         ]).astype(np.float32)
 
     def _compute_reward(self, action: np.ndarray, torques: np.ndarray, rzz: float) -> float:
         # Forward velocity: -y direction (towards camera)
-        r_forward = W_FORWARD * float(-self.data.qvel[1])
+        r_forward = W_FORWARD * float(-self.data.cvel[self._base_link_id, 4])
 
-        # Upright: quaternion x and y components 
-        qx = float(self.data.qpos[4])
-        qy = float(self.data.qpos[5])
+        # Upright: quaternion x and y components
+        qx = float(self.data.xquat[self._base_link_id][1])
+        qy = float(self.data.xquat[self._base_link_id][2])
         r_upright = W_UPRIGHT * (1.0 - 2.0 * (qx**2 + qy**2))
 
         
@@ -185,10 +185,10 @@ class TarsEnv(gym.Env):
         super().reset(seed=seed)
         mujoco.mj_resetDataKeyframe(self.model, self.data, 0) # Initialize holding human in arms
         mujoco.mj_forward(self.model, self.data)
-        self.data.ctrl[:] = [0, 0, 0, -114, 228, 228, 0, -114, 228, 228]
+        self.data.ctrl[:] = [0, 0, -114, 0, 228, 228, 0, 0, -114, 0, 228, 228]
         self._prev_action = np.zeros(NUM_JOINTS, dtype=np.float32)
         self._step_count  = 0
-        self._start_y = float(self.data.qpos[1])
+        self._start_y = float(self.data.xpos[self._base_link_id, 1])
         self._human_rzz_history = []
         return self._get_obs(), {}
 
@@ -210,10 +210,8 @@ class TarsEnv(gym.Env):
         reward = self._compute_reward(action, torques, rzz)
 
         self._step_count += 1
-        w = self.data.qpos[3]
-        qx = self.data.qpos[4]
-        qy = self.data.qpos[5]
-        qz = self.data.qpos[6]
+        bq = self.data.xquat[self._base_link_id]   # (w, x, y, z)
+        w, qx, qy, qz = float(bq[0]), float(bq[1]), float(bq[2]), float(bq[3])
         human_z = self.data.xpos[self._human_thigh_body_id, 2]
         human_too_high = human_z > MAX_HUMAN_HEIGHT
 
@@ -271,10 +269,9 @@ class TarsEnv(gym.Env):
                 if self._ur_geom_box_id in geoms or self._lr_geom_box_id in geoms or self._ul_geom_box_id in geoms or self._ll_geom_box_id in geoms:
                     arm_floor_contact = True
                     break
-        torsoz = self.data.subtree_com[self._base_link_id,2]
-        fallen = bool(torsoz < MIN_TORSO_Z)   
-        # pitch = np.arcsin(2.0 * (w * qy - qz * qx))
-        # fallen     = bool(pitch < MIN_TORSO_PITCH or pitch > MAX_TORSO_PITCH)
+        torsoz = self.data.subtree_com[self._base_link_id, 2]
+        pitch  = np.arcsin(2.0 * (w * qy - qz * qx))
+        fallen = bool(torsoz < MIN_TORSO_Z or pitch < MIN_TORSO_PITCH or pitch > MAX_TORSO_PITCH)
         terminated = fallen or human_too_high or human_on_floor or arm_floor_contact #or barrel_contact_middle_right or fallen
         truncated  = self._step_count >= MAX_EPISODE_STEPS
 
@@ -282,7 +279,7 @@ class TarsEnv(gym.Env):
         steady_threshold = 0.9
         if terminated or truncated:
             parallel = np.array([1.0 - r**2 for r in self._human_rzz_history])
-            info["distance_traveled"]    = self._start_y - float(self.data.qpos[1])
+            info["distance_traveled"]    = self._start_y - float(self.data.xpos[self._base_link_id, 1])
             info["human_parallel_mean"] = float(np.mean(parallel))
             # info["barrel_parallel_std"]  = float(np.std(parallel))
             info["human_fraction_steady"] = float(np.mean(parallel > steady_threshold))

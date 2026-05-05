@@ -26,6 +26,12 @@ if args.xml == "tars_meshed.xml":
     mujoco.mj_forward(model, data)
     data.ctrl[:] = [0, 0, 0, -114, 228, 228, 0, -114, 228, 228]
 
+if args.xml == "tars2_meshed.xml":
+    mujoco.mj_resetDataKeyframe(model, data, 0)
+    mujoco.mj_forward(model, data)
+    data.ctrl[:] = [0, 0, -114, 0, 228, 228, 0, 0, -114, 0, 228, 228]
+
+
 with mujoco.viewer.launch_passive(model, data) as viewer:
     while viewer.is_running():
         step_start = time.time()
