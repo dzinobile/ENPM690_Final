@@ -21,6 +21,12 @@ if args.xml == "tars.xml":
     mujoco.mj_forward(model, data)
     data.ctrl[:] = [0, 0, -114, 0, 228, 228, 0, 0, -114, 0, 228, 228]
 
+# print(model.body_mass)
+# # print COMs (optional: skip world body)
+# for i in range(model.nbody):
+#     name = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_BODY, i)
+#     print(name, data.xipos[i])
+
 # Pre-compute freejoint slice indices for the --float mode
 if args.float:
     root_jnt_id  = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, "root")
@@ -31,7 +37,7 @@ if args.float:
 with mujoco.viewer.launch_passive(model, data) as viewer:
     while viewer.is_running():
         step_start = time.time()
-        mujoco.mj_step(model, data)
+        mujoco.mj_step(model, data) # add a comma 0 to pause the robot in simulation in mid-air
         if args.float:
             data.qpos[root_qposadr:root_qposadr + 7] = frozen_qpos
             data.qvel[root_dofadr:root_dofadr + 6]   = 0

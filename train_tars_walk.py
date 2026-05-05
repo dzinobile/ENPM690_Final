@@ -156,9 +156,9 @@ class TarsEnv(gym.Env):
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
-        mujoco.mj_resetDataKeyframe(self.model, self.data, 0) 
+        mujoco.mj_resetDataKeyframe(self.model, self.data, 0) # this is where it pulls the initial pose
         mujoco.mj_forward(self.model, self.data)
-        self.data.ctrl[:] = [0, 0, -114, 0, 228, 228, 0, 0, -114, 0, 228, 228]
+        self.data.ctrl[:] = [0, 0, -114, 0, 228, 228, 0, 0, -114, 0, 228, 228] # this is what defines the initial pose in the data so it doesn't bounce back
         self._prev_action = np.zeros(NUM_JOINTS, dtype=np.float32)
         self._step_count  = 0
         self._start_y = float(self.data.xpos[self._base_link_id, 1])

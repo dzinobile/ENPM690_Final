@@ -1,6 +1,5 @@
 <mujoco>
-    <compiler meshdir="binary_meshes" />
-    <compiler angle="degree"/>
+    <compiler meshdir="binary_meshes" angle="degree" />
 
     <option timestep="0.001" integrator="RK4" gravity="0 0 -9.81"/>
 
