@@ -5,7 +5,7 @@
     <option timestep="0.001" integrator="RK4" gravity="0 0 -9.81"/>
 
     <default>
-        <joint limited="true" damping="30" armature="0.05" stiffness="0" actuatorfrcrange="-400 400"/>
+        <joint limited="true" damping="30" armature="0.05" stiffness="0" actuatorfrcrange="-300 300"/>
         <!-- contype=0 conaffinity=0: structural geoms (torso, leg capsules) do not
          participate in any collision.  Feet override this to contype=1 so they
          collide with the floor (conaffinity=1) but not with each other. -->
@@ -194,8 +194,12 @@
     </actuator>
 
     <keyframe>
-        <!--         base link x y z   w   x     y z    r_lm  ud_lm  r_l  ud_l  ru  ll  r_rm  ud_rm  r_r  ud_r  ru   rl   human x y    z-->
-        <key name="init" qpos="0 0 0.2 0.5 0.866 0 0    0     0      -1   0     2   2   0     0      -1   0     2    2          0 -1.4 1.2 0.707 0 -0.707 0"/>
+        <!--         base link x y z   w   x     y z    r_lm  ud_lm  r_l  ud_l  lu  ll  r_rm  ud_rm  r_r  ud_r  ru   rl   human x y    z-->
+        <key name="init" qpos="0 0 0.2 0.5 0.866 0 0    0     0      -1   0     2   2   0     0      -1   0     2    2          0 -1.4 1.2 0.707 0 -0.707 0"
+             ctrl="0 0 -114 0 228 228 0 0 -114 0 228 228"/>
+        
+        <key name="2"    qpos="0 0 0.2 0.5 0.866 0 0     -1   0       1   0     1   2   -1    0       1   0     1    2          0 -1.4 1.2 0.707 0 -0.707 0"
+             ctrl="-114 0 114 0 114 228 -114 0 114 0 114 228"/>
     </keyframe>
 
 

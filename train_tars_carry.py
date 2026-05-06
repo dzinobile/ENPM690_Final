@@ -36,7 +36,8 @@ NUM_JOINTS  = len(JOINT_NAMES)
 
 # ── Reward weights ────────────────────────────────────────────────────────────
 W_FORWARD = 3.0    # encourage -y velocity
-W_UPRIGHT = 3.0    # penalise tipping (R_zz of torso quaternion)
+W_UPRIGHT = 1.0    # penalise pitch (qx)
+W_YAW     = 1.0    # penalise yaw rotation away from spawn heading (qz)
 W_HUMAN = 2.0      # encourage human parallel to floor
 W_HEALTHY = 0.05    # small bonus each step for staying alive
 W_ENERGY  = 0.0001  # penalise |torque * joint_vel|
@@ -46,7 +47,7 @@ W_ACTION  = 0.0001  # penalise large actions (smooth control)
 MIN_TORSO_Z = 0.30   # fall termination if torso drops below this height
 MIN_TORSO_PITCH = -0.8
 MAX_TORSO_PITCH = 0.8    # fall termination if torso pitches beyond these angles
-MAX_HUMAN_HEIGHT = 2
+MAX_HUMAN_HEIGHT = 1.5
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Gymnasium environment
@@ -157,10 +158,11 @@ class TarsEnv(gym.Env):
         # Forward velocity: -y direction (towards camera)
         r_forward = W_FORWARD * float(-self.data.cvel[self._base_link_id, 4])
 
-        # Upright: quaternion x and y components
+        # Upright: penalise pitch (qx) only; yaw penalised separately
         qx = float(self.data.xquat[self._base_link_id][1])
-        qy = float(self.data.xquat[self._base_link_id][2])
-        r_upright = W_UPRIGHT * (1.0 - 2.0 * (qx**2 + qy**2))
+        qz = float(self.data.xquat[self._base_link_id][3])
+        r_upright = W_UPRIGHT * (1.0 - 2.0 * qx**2)
+        r_yaw     = -W_YAW * qz**2
 
         
         # rzz is the world-Z component of the human left thigh's local Z-axis (precomputed in step).
@@ -177,15 +179,15 @@ class TarsEnv(gym.Env):
         # Action smoothness penalty
         r_action = -W_ACTION * float(np.dot(action, action))
 
-        return r_forward + b_parallel + r_healthy + r_energy + r_action + r_upright
+        return r_forward + b_parallel + r_healthy + r_energy + r_action + r_upright + r_yaw
 
     # ── Gymnasium API ─────────────────────────────────────────────────────────
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
-        mujoco.mj_resetDataKeyframe(self.model, self.data, 0) # Initialize holding human in arms
+        keyframe_number = np.random.randint(0,2)
+        mujoco.mj_resetDataKeyframe(self.model, self.data, keyframe_number) # Initialize holding human in arms
         mujoco.mj_forward(self.model, self.data)
-        self.data.ctrl[:] = [0, 0, -114, 0, 228, 228, 0, 0, -114, 0, 228, 228]
         self._prev_action = np.zeros(NUM_JOINTS, dtype=np.float32)
         self._step_count  = 0
         self._start_y = float(self.data.xpos[self._base_link_id, 1])
@@ -235,31 +237,6 @@ class TarsEnv(gym.Env):
                 elif self._right_foot_2_geom_id in geoms:
                     human_on_floor = True
                     break
-
-
-        # barrel_contact_middle_right = False
-        # for i in range(self.data.ncon):
-        #     c = self.data.contact[i]
-        #     geoms = {c.geom1, c.geom2}
-        #     if self._human_geom_id in geoms:
-        #         if self._mr_geom_box_id in geoms:
-        #             barrel_contact_middle_right = True
-        #             break
-        #         elif self._mr_geom_cap1_id in geoms:
-        #             barrel_contact_middle_right = True
-        #             break
-        #         elif self._mr_geom_cap2_id in geoms:
-        #             barrel_contact_middle_right = True
-        #             break
-        #         elif self._ml_geom_box_id in geoms:
-        #             barrel_contact_middle_right = True
-        #             break
-        #         elif self._ml_geom_cap1_id in geoms:
-        #             barrel_contact_middle_right = True
-        #             break
-        #         elif self._ml_geom_cap2_id in geoms:
-        #             barrel_contact_middle_right = True
-        #             break
 
         arm_floor_contact = False
         for i in range(self.data.ncon):

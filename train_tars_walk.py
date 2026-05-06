@@ -43,7 +43,7 @@ W_ENERGY  = 0.0001  # penalise |torque * joint_vel|
 W_ACTION  = 0.0001  # penalise large actions (smooth control)
 
 # ── Termination ───────────────────────────────────────────────────────────────
-MIN_TORSO_Z = 0.50   # fall termination if torso drops below this height
+MIN_TORSO_Z = 0.30   # fall termination if torso drops below this height
 MIN_TORSO_PITCH = -0.8
 MAX_TORSO_PITCH = 0.8    # fall termination if torso pitches beyond these angles
 

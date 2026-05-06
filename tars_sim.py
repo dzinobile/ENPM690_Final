@@ -12,14 +12,16 @@ model = mujoco.MjModel.from_xml_path(args.xml)
 data = mujoco.MjData(model)
 
 if args.xml == "tars_with_human.xml":
-    mujoco.mj_resetDataKeyframe(model, data, 0)
+    mujoco.mj_resetDataKeyframe(model, data, 1)
     mujoco.mj_forward(model, data)
-    data.ctrl[:] = [0, 0, -114, 0, 228, 228, 0, 0, -114, 0, 228, 228]
+    #                     r_l      lu    ll         r_r     ru   rl 
+  # data.ctrl[:] = [0, 0, -114, 0, 228, 228, 0, 0, -114, 0, 228, 228] #for keyframe 0
+    # data.ctrl[:] = [-114, 0, 114, 0, 114, 228, -114, 0, 114, 0, 114, 228 ] # for keyframe 1
 
 if args.xml == "tars.xml":
     mujoco.mj_resetDataKeyframe(model, data, 0)
     mujoco.mj_forward(model, data)
-    data.ctrl[:] = [0, 0, -114, 0, 228, 228, 0, 0, -114, 0, 228, 228]
+    # data.ctrl[:] = [0, 0, -114, 0, 228, 228, 0, 0, -114, 0, 228, 228]
 
 # Pre-compute freejoint slice indices for the --float mode
 if args.float:
