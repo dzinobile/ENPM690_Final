@@ -12,11 +12,11 @@ model = mujoco.MjModel.from_xml_path(args.xml)
 data = mujoco.MjData(model)
 
 if args.xml == "tars_with_human.xml":
-    mujoco.mj_resetDataKeyframe(model, data, 0)
+    mujoco.mj_resetDataKeyframe(model, data, 1)
     mujoco.mj_forward(model, data)
 
 if args.xml == "tars.xml":
-    mujoco.mj_resetDataKeyframe(model, data, 0)
+    mujoco.mj_resetDataKeyframe(model, data, 4)
     mujoco.mj_forward(model, data)
 
 # print(model.body_mass)

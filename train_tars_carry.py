@@ -43,7 +43,7 @@ W_ENERGY  = 0.0001  # penalise |torque * joint_vel|
 W_ACTION  = 0.0001  # penalise large actions (smooth control)
 
 # ── Termination ───────────────────────────────────────────────────────────────
-MIN_TORSO_Z = 0.30   # fall termination if torso drops below this height
+MIN_TORSO_Z = 0.15   # fall termination if torso drops below this height
 MIN_TORSO_PITCH = -0.8
 MAX_TORSO_PITCH = 0.8    # fall termination if torso pitches beyond these angles
 MAX_HUMAN_HEIGHT = 2
@@ -183,7 +183,7 @@ class TarsEnv(gym.Env):
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
-        keyframe = self.np_random.integers(0, 2) # cycle through the two initial pose options
+        keyframe = self.np_random.integers(0, 6) # cycle through the two initial pose options
         mujoco.mj_resetDataKeyframe(self.model, self.data, keyframe) # Initialize holding human in arms
         mujoco.mj_forward(self.model, self.data)
         self._prev_action = np.zeros(NUM_JOINTS, dtype=np.float32)
