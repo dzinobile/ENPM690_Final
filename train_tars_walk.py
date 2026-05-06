@@ -156,7 +156,8 @@ class TarsEnv(gym.Env):
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
-        mujoco.mj_resetDataKeyframe(self.model, self.data, 0) # this is where it pulls the initial pose
+        keyframe = self.np_random.integers(0, 6) # cycle through the two initial pose options
+        mujoco.mj_resetDataKeyframe(self.model, self.data, keyframe) # this is where it pulls the initial pose
         mujoco.mj_forward(self.model, self.data)
         print("ctrl:", self.data.ctrl[:])
         self._prev_action = np.zeros(NUM_JOINTS, dtype=np.float32)
