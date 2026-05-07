@@ -194,13 +194,20 @@
     </actuator>
 
     <keyframe>
-        <!--         base link x y z   w   x     y z    r_lm  ud_lm  r_l  ud_l  lu  ll  r_rm  ud_rm  r_r  ud_r  ru   rl   human x y    z-->
-        <key name="init" qpos="0 0 0.2 0.5 0.866 0 0    0     0      -1   0     2   2   0     0      -1   0     2    2          0 -1.4 1.2 0.707 0 -0.707 0"
-             ctrl="0 0 -114 0 228 228 0 0 -114 0 228 228"/>
+        <key name="init0" qpos="0 0 0.2 0.5 0.866 0 0     0     0     -1    0        2.2     2     0     0      -1    0     2.2     2        0 -1.4 1.2 0.707 0 -0.707 0"
+            ctrl="0 0 -114 0 250.8 228 0 0 -114 0 250.8 228" /> <!--x with middle links tilted forward and side links tilted back-->
         
-        <key name="2"    qpos="0 0 0.2 0.5 0.866 0 0     -1   0       1   0     1   2   -1    0       1   0     1    2          0 -1.4 1.2 0.707 0 -0.707 0"
-             ctrl="-114 0 114 0 114 228 -114 0 114 0 114 228"/>
-    </keyframe>
+        <key name="init1" qpos="0 0 0.2 0.707 0.707 0 0     0     0      0    0        1.5     2     0     0       0    0     1.5     2        0 -1 1.45 0.707 0 -0.707 0"
+            ctrl="0 0 0 0 171 228 0 0 0 0 171 228" /> <!--standing straight up-->
+        
+        <key name="init2" qpos="0 0 0.2 0.5 0.866 0 0    -1     0      1    0        1.2     2    -1     0       1    0     1.2     2        0 -1.4 1.2 0.707 0 -0.707 0"
+            ctrl="-114 0 114 0 136.8 228 -114 0 114 0 136.8 228"/> <!--x with middle links tilted back and side links tilted forward-->
+        
+        <key name="init3" qpos="0 0 0.2 0.5 0.866 0 0    -1     0      0    0        2.6     2     0    0       -1    0     2.6     2        0 -1.4 1.2 0.707 0 -0.707 0"
+            ctrl="-114 0 0 0 296.4 228 0 0 -114 0 296.4 228"/> <!--x with middle right link tilted forward and all other links tilted back-->
+        
+        <key name="init4" qpos="0 0 0.2 0.5 0.866 0 0     0     0     -1    0        2.6     2    -1    0        0    0     2.6     2        0 -1.4 1.2 0.707 0 -0.707 0"
+            ctrl="0 0 -114 0 296.4 228 -114 0 0 0 296.4 228"/> <!--x with middle left link tilted forward and all other links tilted back-->    </keyframe>
 
 
 </mujoco>
