@@ -1,0 +1,68 @@
+services:
+
+  # --- Training (headless, no display needed) ---
+
+  train-walk:
+    build: .
+    command: python train_tars_walk.py
+    volumes:
+      - ./checkpoints:/app/checkpoints
+      - ./best_model_walk:/app/best_model_walk
+    environment:
+      - MUJOCO_GL=osmesa
+
+  train-carry:
+    build: .
+    command: python train_tars_carry.py
+    volumes:
+      - ./checkpoints:/app/checkpoints
+      - ./best_model_carry:/app/best_model_carry
+    environment:
+      - MUJOCO_GL=osmesa
+
+  # --- Replay (needs X11 display forwarding from host) ---
+
+  replay-walk:
+    build: .
+    command: python replay_tars_walk.py
+    volumes:
+      - ./checkpoints:/app/checkpoints
+      - ./best_model_walk:/app/best_model_walk
+      - /tmp/.X11-unix:/tmp/.X11-unix
+    environment:
+      - DISPLAY=${DISPLAY}
+      - MUJOCO_GL=glx
+    network_mode: host
+
+  replay-carry:
+    build: .
+    command: python replay_tars_carry.py
+    volumes:
+      - ./checkpoints:/app/checkpoints
+      - ./best_model_carry:/app/best_model_carry
+      - /tmp/.X11-unix:/tmp/.X11-unix
+    environment:
+      - DISPLAY=${DISPLAY}
+      - MUJOCO_GL=glx
+    network_mode: host
+
+  replay-checkpoints:
+    build: .
+    command: python replay_checkpoints.py
+    volumes:
+      - ./checkpoints:/app/checkpoints
+      - /tmp/.X11-unix:/tmp/.X11-unix
+    environment:
+      - DISPLAY=${DISPLAY}
+      - MUJOCO_GL=glx
+    network_mode: host
+
+  sim:
+    build: .
+    command: python tars_sim.py
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+    environment:
+      - DISPLAY=${DISPLAY}
+      - MUJOCO_GL=glx
+    network_mode: host

@@ -1,0 +1,5 @@
+numpy==1.26.4
+mujoco==3.5.0
+gymnasium[mujoco]==1.2.3
+stable-baselines3==2.8.0
+torch==2.7.0
