@@ -207,7 +207,6 @@
             ctrl="-114 0 0 0 296.4 228 0 0 -114 0 296.4 228"/> <!--x with middle right link tilted forward and all other links tilted back-->
         
         <key name="init4" qpos="0 0 0.2 0.5 0.866 0 0     0     0     -1    0        2.6     2    -1    0        0    0     2.6     2        0 -1.4 1.2 0.707 0 -0.707 0"
-            ctrl="0 0 -114 0 296.4 228 -114 0 0 0 296.4 228"/> <!--x with middle left link tilted forward and all other links tilted back-->    </keyframe>
-
-
+            ctrl="0 0 -114 0 296.4 228 -114 0 0 0 296.4 228"/> <!--x with middle left link tilted forward and all other links tilted back-->    
+    </keyframe>
 </mujoco>

@@ -286,7 +286,7 @@ def train(timesteps: int, n_envs: int, resume: str | None):
         callback=callbacks,
         reset_num_timesteps=(resume is None),
     )
-    model.save("tars_walk_ppo_final")
+    model.save("checkpoints/walk/tars_walk_ppo_final")
     print("Training complete — model saved to tars_walk_ppo_final.zip")
     vec_env.close()
     eval_env.close()
