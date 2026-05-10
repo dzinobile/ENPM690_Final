@@ -8,6 +8,7 @@ services:
     volumes:
       - ./checkpoints:/app/checkpoints
       - ./best_model_walk:/app/best_model_walk
+      - ./logs/walk:/app/logs/walk
     environment:
       - MUJOCO_GL=osmesa
 
@@ -17,6 +18,7 @@ services:
     volumes:
       - ./checkpoints:/app/checkpoints
       - ./best_model_carry:/app/best_model_carry
+      - ./logs/carry:/app/logs/carry
     environment:
       - MUJOCO_GL=osmesa
 

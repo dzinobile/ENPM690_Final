@@ -22,13 +22,9 @@ import os
 
 # ── Edit this list to choose which checkpoints to show ───────────────────────
 CHECKPOINTS = [
-    "checkpoints/carry/tars_carry_ppo_49998_steps.zip",
-    "checkpoints/carry/tars_carry_ppo_999960_steps.zip",
-    "checkpoints/carry/tars_carry_ppo_2000000_steps.zip",
-    "checkpoints/carry/tars_carry_ppo_3000000_steps.zip",  
-    "checkpoints/carry/tars_carry_ppo_4049838_steps.zip",
-    "checkpoints/carry/tars_carry_ppo_5049798_steps.zip",  
-    "best_model_carry/best_model.zip",
+    "checkpoints/carry/tars_carry_ppo_50000_steps.zip",
+    "checkpoints/carry/tars_carry_ppo_100000_steps.zip",
+    "checkpoints/carry/tars_carry_ppo_final.zip",
 ]
 
 EPISODES_PER_CHECKPOINT = 1
