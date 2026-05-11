@@ -17,11 +17,26 @@ from stable_baselines3 import PPO
 from train_tars_walk import TarsEnv
 
 
-def replay(model_path: str, n_episodes: int):
+def replay(model_path: str, n_episodes: int, keyframe: int | None):
     print(f"Loading model from '{model_path}'...")
     model = PPO.load(model_path)
 
     env = TarsEnv(render_mode="human")
+
+    if keyframe is not None:
+        # Monkey-patch reset to use a fixed keyframe so replays are reproducible
+        import mujoco as _mj
+        _orig_reset = env.reset
+        def _fixed_reset(seed=None, options=None):
+            super(type(env), env).reset(seed=seed)
+            _mj.mj_resetDataKeyframe(env.model, env.data, keyframe)
+            _mj.mj_forward(env.model, env.data)
+            env._prev_action[:] = 0
+            env._step_count = 0
+            env._start_y = float(env.data.xpos[env._base_link_id, 1])
+            env._human_rzz_history = []
+            return env._get_obs(), {}
+        env.reset = _fixed_reset
 
     for ep in range(1, n_episodes + 1):
         obs, _ = env.reset()
@@ -67,6 +82,8 @@ if __name__ == "__main__":
                         help="Path to saved model (no .zip extension)")
     parser.add_argument("--episodes", type=int, default=3,
                         help="Number of episodes to replay (default: 3)")
+    parser.add_argument("--keyframe", type=int, default=None,
+                        help="Pin to a specific keyframe (0 or 1) for reproducible replays; omit to use random like training")
     args = parser.parse_args()
 
-    replay(args.model, args.episodes)
+    replay(args.model, args.episodes, args.keyframe)

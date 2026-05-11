@@ -67,11 +67,12 @@ class TarsEnv(gym.Env):
 
     metadata = {"render_modes": ["human"], "render_fps": 50}
 
-    def __init__(self, render_mode=None):
+    def __init__(self, render_mode=None, variable=False):
         super().__init__()
         self.model = mujoco.MjModel.from_xml_path(XML_PATH)
         self.data  = mujoco.MjData(self.model)
         self.render_mode = render_mode
+        self.variable = variable
         self._viewer     = None
         self._step_count = 0
         
@@ -156,7 +157,8 @@ class TarsEnv(gym.Env):
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
-        mujoco.mj_resetDataKeyframe(self.model, self.data, 0) 
+        keyframe_number = np.random.randint(0, 5) if self.variable else 0
+        mujoco.mj_resetDataKeyframe(self.model, self.data, keyframe_number) 
         mujoco.mj_forward(self.model, self.data)
         self.data.ctrl[:] = [0, 0, -114, 0, 228, 228, 0, 0, -114, 0, 228, 228]
         self._prev_action = np.zeros(NUM_JOINTS, dtype=np.float32)
@@ -232,9 +234,9 @@ class EpisodeStatsCallback(BaseCallback):
 # Training
 # ─────────────────────────────────────────────────────────────────────────────
 
-def train(timesteps: int, n_envs: int, resume: str | None):
-    vec_env  = make_vec_env(TarsEnv, n_envs=n_envs, vec_env_cls=SubprocVecEnv)
-    eval_env = TarsEnv()
+def train(timesteps: int, n_envs: int, resume: str, variable:bool | None):
+    vec_env  = make_vec_env(TarsEnv, n_envs=n_envs, vec_env_cls=SubprocVecEnv, env_kwargs={"variable": variable})
+    eval_env = TarsEnv(variable=variable)
 
     callbacks = [
         EpisodeStatsCallback(),
@@ -299,6 +301,8 @@ if __name__ == "__main__":
                         help="Parallel envs (default: 4)")
     parser.add_argument("--resume",   type=str, default=None,
                         help="Path to checkpoint to resume from")
+    parser.add_argument("--variable", action="store_true",
+                        help="Randomly vary starting keyframe during training")
     args = parser.parse_args()
 
-    train(args.timesteps, args.n_envs, args.resume)
+    train(args.timesteps, args.n_envs, args.resume, args.variable)
