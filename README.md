@@ -108,6 +108,7 @@ View Tensorboard logs with critical parameters plotted over timesteps.
 tensorboard --logdir=logs/walk/
 # OR
 tensorboard --logdir=logs/carry/
+# If that doesn't work try --logdir ./logs/carry/ structure instead
 ```
 Then open http://localhost:6006/ in your browser.
 
