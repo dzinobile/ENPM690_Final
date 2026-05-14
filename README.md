@@ -28,6 +28,8 @@ An optional --variable argument causes the start condition to randomly vary betw
 After getting docker, add yourself to the docker group so you don't have to use sudo for every command.  
 ```bash
 sudo usermod -aG docker $USER
+newgrp docker 
+
 ```
 Build the docker container inside this repo.
 ```bash
