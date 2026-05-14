@@ -115,13 +115,13 @@ tensorboard --logdir=logs/carry/
 Then open http://localhost:6006/ in your browser.
 
 ### Test Pre-Trained Models
-To test single-start walk trained for xx million timesteps
+To test single-start walk trained for 4 million timesteps
 ```bash
-docker compose run --rm replay-walk python replay_tars_walk.py --model best_model_walk/FILE NAME HERE!!! --keyframe 0
+docker compose run --rm replay-walk python replay_tars_walk.py --model best_model_walk/single_walk_4M.zip --keyframe 0
 ```
-To test single-start carry trained for XX million timesteps
+To test single-start carry trained for 1 million timesteps
 ```bash
-docker compose run --rm replay-carry python replay_tars_carry.py --model best_model_carry/FILE NAME HERE!!! --keyframe 0
+docker compose run --rm replay-carry python replay_tars_carry.py --model best_model_carry/single_carry_1M.zip --keyframe 0
 ```
 To test variable-start walk trained for 20 million timesteps
 ```bash
