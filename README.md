@@ -29,7 +29,7 @@ After getting docker, add yourself to the docker group so you don't have to use 
 ```bash
 sudo usermod -aG docker $USER
 ```
-Build the docker container.
+Build the docker container inside this repo.
 ```bash
 docker compose build 
 ```
@@ -111,6 +111,24 @@ tensorboard --logdir=logs/carry/
 # If that doesn't work try --logdir ./logs/carry/ structure instead
 ```
 Then open http://localhost:6006/ in your browser.
+
+### Test Pre-Trained Models
+To test single-start walk trained for xx million timesteps
+```bash
+docker compose run --rm replay-walk python replay_tars_walk.py --model best_model_walk/FILE NAME HERE!!! --keyframe 0
+```
+To test single-start carry trained for XX million timesteps
+```bash
+docker compose run --rm replay-carry python replay_tars_carry.py --model best_model_carry/FILE NAME HERE!!! --keyframe 0
+```
+To test variable-start walk trained for 20 million timesteps
+```bash
+docker compose run --rm replay-walk python replay_tars_walk.py --model best_model_walk/walk_20mill.zip --keyframe 0
+```
+To test variable-start carry trained for 4 million timesteps
+```bash
+docker compose run --rm replay-carry python replay_tars_carry.py --model best_model_carry/carry_4mill.zip --keyframe 1
+```
 
 ### Delete All Docker Images and Containers
 ```bash
