@@ -29,55 +29,52 @@
     <worldbody>
         <light name="sun" pos="0 0 6" dir="0 0 -1" diffuse="1 1 1" specular="0.3 0.3 0.3"/>
         <geom name="floor" type="plane" size="50 50 0.1" rgba="0.75 0.85 0.75 1" friction="1.2 0.005 0.0001" contype="1" conaffinity="1" />
-        <!--WHOLE ROBOT NAME-->
-        <body name="tars_robot" euler="90 0 0">
-        <freejoint name="root"/>
-            <!--BASE-->
-            <body name="base_link">
-                <!-- <inertial pos="0 0 0" mass="4" diaginertia="0.1 0.1 0.1"/> -->
-                <geom type="mesh" mesh="base" rgba="0.35 0.45 0.75 1" contype="1" conaffinity="0" />
-                <!--LEFT CHAIN-->
-                <body name="left_base_link">
-                    <!-- <inertial pos="1 0 0" mass="4" diaginertia="0.05 0.05 0.05"/> -->
-                    <joint name="r_lm" type="hinge" axis="1 0 0" pos="0 1 0.15" range="-355 355" damping="100" />
-                    <joint name="ud_lm" type="slide" axis="0 1 0" range="-0.2 0.2" damping="100" actuatorfrcrange="-400 400"/>
-                    <geom type="mesh" mesh="middle_left" rgba="0.55 0.65 0.45 1" contype="1" conaffinity="0" />
-                    <body name="left_link">
-                        <!-- <inertial pos="1 0 0" mass="4" diaginertia="0.05 0.05 0.05"/> -->
-                        <joint name="r_l" type="hinge" axis="1 0 0" pos="0 1 0.15" range="-355 355" damping="100" />
-                        <joint name="ud_l" type="slide" axis="0 1 0" range="-0.2 0.2" damping="100" actuatorfrcrange="-400 400"/>
-                        <geom type="mesh" mesh="left" rgba="0.5 0.5 0.5 1" margin="0.0003" gap="0.0001" solref="0.01 1" solimp="0.9 0.95 0.001" contype="1" conaffinity="0" />
-                        <body name="left_upper_arm">
-                            <!-- <inertial pos="1 0 0" mass="2" diaginertia="0.05 0.05 0.05"/> -->
-                            <joint name="r_lu" type="hinge" axis="1 0 0" pos="0 1 0.2" range="0 270" damping="100" />
-                            <geom name="left_upper_arm_geom" type="mesh" mesh="left_upper_arm" rgba="0.5 0 0.5 1" margin="0.0003" gap="0.0001" solref="0.01 1" solimp="0.9 0.95 0.001" contype="1" conaffinity="0" />
-                            <body name="left_lower_arm">
-                                <!-- <inertial pos="1 0 0" mass="1" diaginertia="0.05 0.05 0.05"/> -->
-                                <joint name="r_ll" type="hinge" axis="1 0 0" pos="0 2 0.15" range="0 355" damping="100" />
-                                <geom name="left_lower_arm_geom" type="mesh" mesh="left_lower_arm" rgba="0 0.5 0.5 1" margin="0.0003" gap="0.0001" solref="0.01 1" solimp="0.9 0.95 0.001" contype="1" conaffinity="0" />
-                            </body>
+        <!--BASE-->
+        <body name="base_link" euler="90 0 0">
+            <freejoint name="root" />
+            <geom type="mesh" mesh="base" rgba="0.35 0.45 0.75 1" contype="1" conaffinity="0" />
+            <!--LEFT CHAIN-->
+            <!--LEFT BASE LINK-->
+            <body name="left_base_link">
+                <joint name="r_lm" type="hinge" axis="1 0 0" pos="0 1 0.15" range="-355 355" damping="100" />
+                <joint name="ud_lm" type="slide" axis="0 1 0" range="-0.2 0.2" damping="100" actuatorfrcrange="-400 400"/>
+                <geom type="mesh" mesh="middle_left" rgba="0.55 0.65 0.45 1" contype="1" conaffinity="0" />
+                <!--LEFT LINK-->
+                <body name="left_link">
+                    <joint name="r_l" type="hinge" axis="1 0 0" pos="0 1 0.15" range="-355 355" damping="100" />
+                    <joint name="ud_l" type="slide" axis="0 1 0" range="-0.2 0.2" damping="100" actuatorfrcrange="-400 400"/>
+                    <geom type="mesh" mesh="left" rgba="0.5 0.5 0.5 1" margin="0.0003" gap="0.0001" solref="0.01 1" solimp="0.9 0.95 0.001" contype="1" conaffinity="0" />
+                    <!--LEFT UPPER ARM-->
+                    <body name="left_upper_arm">
+                        <joint name="r_lu" type="hinge" axis="1 0 0" pos="0 1 0.2" range="0 270" damping="100" />
+                        <geom name="left_upper_arm_geom" type="mesh" mesh="left_upper_arm" rgba="0.5 0 0.5 1" margin="0.0003" gap="0.0001" solref="0.01 1" solimp="0.9 0.95 0.001" contype="1" conaffinity="0" />
+                        <!--LEFT LOWER ARM-->
+                        <body name="left_lower_arm">
+                            <joint name="r_ll" type="hinge" axis="1 0 0" pos="0 2 0.15" range="0 355" damping="100" />
+                            <geom name="left_lower_arm_geom" type="mesh" mesh="left_lower_arm" rgba="0 0.5 0.5 1" margin="0.0003" gap="0.0001" solref="0.01 1" solimp="0.9 0.95 0.001" contype="1" conaffinity="0" />
                         </body>
                     </body>
                 </body>
-                <!--RIGHT CHAIN-->
-                <body name="right_base_link">
-                    <joint name="r_rm" type="hinge" axis="1 0 0" pos="0 1 0.15" range="-355 355" damping="100" />
-                    <joint name="ud_rm" type="slide" axis="0 1 0" range="-0.2 0.2" damping="100" actuatorfrcrange="-400 400"/>
-                    <geom type="mesh" mesh="middle_right" rgba="0.55 0.65 0.45 1" contype="1" conaffinity="0" />
-                    <body name="right_link">
-                        <!-- <inertial pos="1 0 0" mass="4" diaginertia="0.05 0.05 0.05"/> -->
-                        <joint name="r_r" type="hinge" axis="1 0 0" pos="0 1 0.15" range="-355 355" damping="100" />
-                        <joint name="ud_r" type="slide" axis="0 1 0" range="-0.2 0.2" damping="100" actuatorfrcrange="-400 400"/>
-                        <geom type="mesh" mesh="right" rgba="0.5 0.5 0.5 1" margin="0.0003" gap="0.0001" solref="0.01 1" solimp="0.9 0.95 0.001" contype="1" conaffinity="0" />
-                        <body name="right_upper_arm">
-                            <!-- <inertial pos="1 0 0" mass="2" diaginertia="0.05 0.05 0.05"/> -->
-                            <joint name="r_ru" type="hinge" axis="1 0 0" pos="0 1 0.2" range="0 270" damping="100" />
-                            <geom name="right_upper_arm_geom" type="mesh" mesh="right_upper_arm" rgba="0.5 0 0.5 1" margin="0.0003" gap="0.0001" solref="0.01 1" solimp="0.9 0.95 0.001" contype="1" conaffinity="0" />
-                            <body name="right_lower_arm">
-                                <!-- <inertial pos="1 0 0" mass="1" diaginertia="0.05 0.05 0.05"/> -->
-                                <joint name="r_rl" type="hinge" axis="1 0 0" pos="0 2 0.15" range="0 355" damping="100" />
-                                <geom name="right_lower_arm_geom" type="mesh" mesh="right_lower_arm" rgba="0 0.5 0.5 1" margin="0.0003" gap="0.0001" solref="0.01 1" solimp="0.9 0.95 0.001" contype="1" conaffinity="0" />
-                            </body>
+            </body>
+            <!--RIGHT CHAIN-->
+            <!--RIGHT BASE LINK-->
+            <body name="right_base_link">
+                <joint name="r_rm" type="hinge" axis="1 0 0" pos="0 1 0.15" range="-355 355" damping="100" />
+                <joint name="ud_rm" type="slide" axis="0 1 0" range="-0.2 0.2" damping="100" actuatorfrcrange="-400 400"/>
+                <geom type="mesh" mesh="middle_right" rgba="0.55 0.65 0.45 1" contype="1" conaffinity="0" />
+                <!--RIGHT LINK-->
+                <body name="right_link">
+                    <joint name="r_r" type="hinge" axis="1 0 0" pos="0 1 0.15" range="-355 355" damping="100" />
+                    <joint name="ud_r" type="slide" axis="0 1 0" range="-0.2 0.2" damping="100" actuatorfrcrange="-400 400"/>
+                    <geom type="mesh" mesh="right" rgba="0.5 0.5 0.5 1" margin="0.0003" gap="0.0001" solref="0.01 1" solimp="0.9 0.95 0.001" contype="1" conaffinity="0" />
+                    <!--RIGHT UPPER ARM-->
+                    <body name="right_upper_arm">
+                        <joint name="r_ru" type="hinge" axis="1 0 0" pos="0 1 0.2" range="0 270" damping="100" />
+                        <geom name="right_upper_arm_geom" type="mesh" mesh="right_upper_arm" rgba="0.5 0 0.5 1" margin="0.0003" gap="0.0001" solref="0.01 1" solimp="0.9 0.95 0.001" contype="1" conaffinity="0" />
+                        <!--RIGHT LOWER ARM-->
+                        <body name="right_lower_arm">
+                            <joint name="r_rl" type="hinge" axis="1 0 0" pos="0 2 0.15" range="0 355" damping="100" />
+                            <geom name="right_lower_arm_geom" type="mesh" mesh="right_lower_arm" rgba="0 0.5 0.5 1" margin="0.0003" gap="0.0001" solref="0.01 1" solimp="0.9 0.95 0.001" contype="1" conaffinity="0" />
                         </body>
                     </body>
                 </body>
